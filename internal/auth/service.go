@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type TokenConfig struct {
@@ -16,6 +17,21 @@ type TokenConfig struct {
 
 type Claims struct {
 	jwt.RegisteredClaims
+}
+
+func HashPassword(password string) (string, error) {
+	passwordBytes := []byte(password)
+	hashedPassword, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
+}
+
+func VerifyPassword(hashedPass string, inputPass string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPass), []byte(inputPass))
 }
 
 func GenerateToken(cfg TokenConfig) (string, error) {
