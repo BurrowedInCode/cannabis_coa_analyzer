@@ -1,0 +1,38 @@
+package coa
+
+import (
+	"log/slog"
+	"net/http"
+)
+
+func AnalyzeCOAHandler(logger *slog.Logger, svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		file, header, err := r.FormFile("coa")
+		if err != nil {
+			http.Error(w, "missing coa file", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		uploaded, err := svc.UploadCOA(r.Context(), file, header.Filename, header.Header.Get("Content-Type"))
+		if err != nil {
+			logger.Error("Failed to upload COA", "error", err)
+			http.Error(w, "failed to upload file", http.StatusInternalServerError)
+			return
+		}
+		result, err := svc.AnalyzeCOA(r.Context(), uploaded.ID)
+		if err != nil {
+			logger.Error("failed to analyze  COA", "error", err)
+			http.Error(w, "failed to analyze file", http.StatusInternalServerError)
+			return
+		}
+
+		if err := svc.DeleteCOA(r.Context(), uploaded.ID); err != nil {
+			logger.Error("Failed to delete COA", "error", err)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(result))
+	}
+}
+
