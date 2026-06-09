@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/db"
+	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/coa"
 	"github.com/joho/godotenv"
 )
 
@@ -31,7 +32,9 @@ func main() {
 		"idle_conns", stats.IdleConns(),
 	)
 
+	coaSvc := coa.NewService()
 	mux := http.NewServeMux()
+	mux.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, coaSvc))
 
 	server := &http.Server{
 		Handler:      mux,
