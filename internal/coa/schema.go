@@ -1,5 +1,7 @@
 package coa
 
+import "time"
+
 type Cannabinoid struct {
 	Name  string  `json:"name"`
 	Value float64 `json:"value"`
@@ -23,7 +25,7 @@ type Analysis struct {
 	SampleName   string        `json:"sample_name"`
 	BatchNumber  string        `json:"batch_number"`
 	SampleMatrix string        `json:"sample_matrix"`
-	TestDate     string        `json:"test_date"`
+	TestDate     time.Time     `json:"test_date"`
 	OverallPass  bool          `json:"overall_pass"`
 	Cannabinoids []Cannabinoid `json:"cannabinoids"`
 	Terpenes     []Terpene     `json:"terpenes"`
