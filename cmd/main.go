@@ -8,10 +8,29 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/BurrowedInCode/cannabis_coa_analyzer/db"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	db, err := db.ConnectToDB(os.Getenv("DATABASE_URL"))
+	if err != nil {
+		logger.Error("failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+
+	stats := db.Stat()
+
+	logger.Info("database connected",
+		"total_conns", stats.TotalConns(),
+		"max_conns", stats.MaxConns(),
+		"idle_conns", stats.IdleConns(),
+	)
+
 	mux := http.NewServeMux()
 
 	server := &http.Server{

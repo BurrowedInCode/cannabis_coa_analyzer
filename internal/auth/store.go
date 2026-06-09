@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type User struct {
@@ -14,18 +14,18 @@ type User struct {
 }
 
 type Store struct {
-	db *sql.DB
+	db *pgxpool.Pool
 }
 
 type AuthStore interface {
 	RegisterUser(ctx context.Context, user *User) error
 }
 
-func (s *Store) RegisterUser(ctx context.Context, user *User) error {
-	_, err := s.db.ExecContext(ctx, "INSERT INTO users (username, password_hash, created_at) VALUES($1, $2, $3)", user.Username, user.PasswordHash)
-	if err != nil {
-		return err
-	}
+func NewStore(db *pgxpool.Pool) *Store {
+	return &Store{db: db}
+}
 
-	return nil
+func (s *Store) RegisterUser(ctx context.Context, user *User) error {
+	_, err := s.db.Exec(ctx, "INSERT INTO users (username, password_hash, created_at) VALUES($1, $2, NOW())", user.Username, user.PasswordHash)
+	return err
 }
