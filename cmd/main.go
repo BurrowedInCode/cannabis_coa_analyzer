@@ -69,6 +69,6 @@ func main() {
 		logger.Error("HTTP shutdown error", "error", err)
 		os.Exit(1)
 	}
-
+	db.Close()
 	logger.Info("Shutdown complete")
 }
