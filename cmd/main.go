@@ -32,7 +32,11 @@ func main() {
 		"idle_conns", stats.IdleConns(),
 	)
 
-	coaSvc := coa.NewService()
+	coaSvc, err := coa.NewService("prompts/extract_coa_v3.md")
+	if err != nil {
+		logger.Error("failed to load COA prompt", "error", err)
+		os.Exit(1)
+	}
 	mux := http.NewServeMux()
 	mux.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, coaSvc))
 
