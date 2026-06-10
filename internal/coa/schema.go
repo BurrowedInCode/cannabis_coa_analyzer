@@ -19,15 +19,21 @@ type TestSummary struct {
 	Status string `json:"status"`
 }
 
+type Laboratory struct {
+	Name          string `json:"name"`
+	Address       string `json:"address"`
+	Phone         string `json:"phone"`
+	Certification string `json:"certification"`
+}
+
 type Analysis struct {
-	LabName      string        `json:"lab_name"`
-	License      string        `json:"license"`
-	SampleName   string        `json:"sample_name"`
-	BatchNumber  string        `json:"batch_number"`
-	SampleMatrix string        `json:"sample_matrix"`
-	TestDate     time.Time     `json:"test_date"`
-	OverallPass  bool          `json:"overall_pass"`
-	Cannabinoids []Cannabinoid `json:"cannabinoids"`
-	Terpenes     []Terpene     `json:"terpenes"`
-	Summary      []TestSummary `json:"summary"`
+	Laboratory       Laboratory    `json:"laboratory"`
+	SampleName       string        `json:"sample_name"`
+	SeedToSaleNumber string        `json:"seed_to_sale_number"`
+	SampleMatrix     string        `json:"sample_matrix"`
+	TestDate         time.Time     `json:"test_date"`
+	OverallPass      bool          `json:"overall_pass"`
+	Cannabinoids     []Cannabinoid `json:"cannabinoids"`
+	Terpenes         []Terpene     `json:"terpenes"`
+	Summary          []TestSummary `json:"summary"`
 }
