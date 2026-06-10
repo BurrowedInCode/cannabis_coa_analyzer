@@ -1,6 +1,7 @@
 package coa
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 )
@@ -31,8 +32,8 @@ func AnalyzeCOAHandler(logger *slog.Logger, svc *Service) http.HandlerFunc {
 			logger.Error("Failed to delete COA", "error", err)
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(result))
+		json.NewEncoder(w).Encode(result)
 	}
 }
-
