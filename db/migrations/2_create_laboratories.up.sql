@@ -3,5 +3,5 @@ CREATE TABLE IF NOT EXISTS laboratories (
   name TEXT NOT NULL,
   address TEXT NOT NULL,
   phone TEXT NOT NULL,
-  certification TEXT NOT NULL,
+  certification TEXT NOT NULL
 )
