@@ -15,8 +15,8 @@ type COAStore interface {
 	StoreCOAAnalysis(ctx context.Context, a *Analysis) error
 }
 
-func NewStore(db *pgxpool.Pool) Store {
-	return Store{db: db}
+func NewStore(db *pgxpool.Pool) *Store {
+	return &Store{db: db}
 }
 
 func (s *Store) StoreCOAAnalysis(ctx context.Context, a *Analysis) error {
