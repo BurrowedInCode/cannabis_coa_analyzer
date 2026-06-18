@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/db"
+	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/coa"
 	"github.com/joho/godotenv"
 )
 
@@ -31,13 +32,21 @@ func main() {
 		"idle_conns", stats.IdleConns(),
 	)
 
+	coaStore := coa.NewStore(db)
+	coaSvc, err := coa.NewService("prompts/extract_coa_v3.md")
+	if err != nil {
+		logger.Error("failed to load COA prompt", "error", err)
+		os.Exit(1)
+	}
+
 	mux := http.NewServeMux()
+	mux.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, coaSvc, coaStore))
 
 	server := &http.Server{
 		Handler:      mux,
 		Addr:         ":8080",
 		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
