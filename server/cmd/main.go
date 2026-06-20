@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/db"
+	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/auth"
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/coa"
 	"github.com/joho/godotenv"
 )
@@ -39,9 +40,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	loginStore := auth.NewStore(db)
+
 	mux := http.NewServeMux()
 	mux.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, coaSvc, coaStore))
-
+	mux.Handle("POST /user/register", auth.RegisterUserHandler(logger, loginStore))
+	mux.Handle("POST /user/login", auth.LoginUserHandler(logger, loginStore, os.Getenv("JWT_SECRET")))
 	server := &http.Server{
 		Handler:      mux,
 		Addr:         ":8080",
