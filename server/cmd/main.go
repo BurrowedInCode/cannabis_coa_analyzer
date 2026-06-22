@@ -12,6 +12,7 @@ import (
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/db"
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/auth"
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/coa"
+	"github.com/BurrowedInCode/cannabis_coa_analyzer/middleware"
 	"github.com/joho/godotenv"
 )
 
@@ -47,7 +48,7 @@ func main() {
 	mux.Handle("POST /user/register", auth.RegisterUserHandler(logger, loginStore))
 	mux.Handle("POST /user/login", auth.LoginUserHandler(logger, loginStore, os.Getenv("JWT_SECRET")))
 	server := &http.Server{
-		Handler:      mux,
+		Handler:      middleware.Cors(mux),
 		Addr:         ":8080",
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 60 * time.Second,
