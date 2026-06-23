@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -12,12 +12,14 @@ export const Route = createFileRoute('/login')({
 })
 
 function Login() {
+  const navigate = useNavigate()
+
   const [username, setUsername] = useState<string>('')
   const [password, setPassword] = useState<string>('')
 
   const mutation = useMutation({
     mutationFn: () => UserLogin(username, password),
-    onSuccess: () => { console.log("login success") },
+    onSuccess: () => { navigate({ to: '/about' }) },
     onError: () => { console.log("error logging in") }
   })
 
