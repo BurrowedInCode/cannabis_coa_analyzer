@@ -19,7 +19,7 @@ function Login() {
 
   const mutation = useMutation({
     mutationFn: () => UserLogin(username, password),
-    onSuccess: () => { navigate({ to: '/about' }) },
+    onSuccess: () => { navigate({ to: '/upload' }) },
     onError: () => { console.log("error logging in") }
   })
 
