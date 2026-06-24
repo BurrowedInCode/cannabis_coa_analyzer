@@ -33,3 +33,14 @@ export interface Analysis {
   terpenes: Terpene[]
   summary: TestSummary[]
 }
+
+export interface AnalysisSummary {
+  id: string,
+  sample_name: string,
+  seed_to_sale_number: string,
+  test_date: string,
+  overall_pass: boolean
+}
+
+
+
