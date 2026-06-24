@@ -13,6 +13,7 @@ type Store struct {
 
 type COAStore interface {
 	StoreCOAAnalysis(ctx context.Context, a *Analysis) error
+	GetAllCOAAnalyses(ctx context.Context, limit int, offset int) ([]*AnalysisSummary, error)
 }
 
 func NewStore(db *pgxpool.Pool) *Store {
@@ -69,4 +70,29 @@ func (s *Store) StoreCOAAnalysis(ctx context.Context, a *Analysis) error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+func (s *Store) GetAllCOAAnalyses(ctx context.Context, limit int, offset int) ([]*AnalysisSummary, error) {
+	rows, err := s.db.Query(ctx, "SELECT id, sample_name, seed_to_sale_number, test_date, overall_pass FROM analyses LIMIT $1 OFFSET $2", limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query analyses: %w", err)
+	}
+
+	analysesSummary := []*AnalysisSummary{}
+
+	for rows.Next() {
+		var analysisSummary AnalysisSummary
+
+		if err := rows.Scan(&analysisSummary.ID, &analysisSummary.SampleName, &analysisSummary.SeedToSaleNumber, &analysisSummary.TestDate, &analysisSummary.OverallPass); err != nil {
+			return nil, fmt.Errorf("failed to scan rows: %w", err)
+		}
+
+		analysesSummary = append(analysesSummary, &analysisSummary)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate rows: %w", err)
+	}
+
+	return analysesSummary, nil
 }

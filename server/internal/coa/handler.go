@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 )
 
 func AnalyzeCOAHandler(logger *slog.Logger, svc *Service, store *Store) http.HandlerFunc {
@@ -43,5 +44,40 @@ func AnalyzeCOAHandler(logger *slog.Logger, svc *Service, store *Store) http.Han
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(result)
+	}
+}
+
+func GetAllCOAAnalysesHandler(logger *slog.Logger, store *Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		limitString := r.URL.Query().Get("limit")
+		offsetString := r.URL.Query().Get("offset")
+
+		limitInt, err := strconv.Atoi(limitString)
+
+		if err != nil || limitInt <= 0 {
+			limitInt = 20
+		}
+
+		offsetInt, err := strconv.Atoi(offsetString)
+
+		if err != nil || offsetInt < 0 {
+			offsetInt = 0
+		}
+
+		analyses, err := store.GetAllCOAAnalyses(r.Context(), limitInt, offsetInt)
+
+		if err != nil {
+			logger.Error("failed to fetch analyses", "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := json.NewEncoder(w).Encode(analyses); err != nil {
+			logger.Error("failed to encode response", "error", err)
+			http.Error(w, "failed to encode response", http.StatusInternalServerError)
+			return
+		}
 	}
 }

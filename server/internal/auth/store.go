@@ -19,6 +19,7 @@ type Store struct {
 
 type AuthStore interface {
 	RegisterUser(ctx context.Context, user *User) error
+	GetUserByUserName(ctx context.Context, username string) (*User, error)
 }
 
 func NewStore(db *pgxpool.Pool) *Store {
@@ -26,6 +27,18 @@ func NewStore(db *pgxpool.Pool) *Store {
 }
 
 func (s *Store) RegisterUser(ctx context.Context, user *User) error {
-	_, err := s.db.Exec(ctx, "INSERT INTO users (username, password_hash, created_at) VALUES($1, $2, NOW())", user.Username, user.PasswordHash)
+	_, err := s.db.Exec(ctx, "INSERT INTO users (username, password_hash) VALUES($1, $2)", user.Username, user.PasswordHash)
 	return err
+}
+
+func (s *Store) GetUserByUserName(ctx context.Context, username string) (*User, error) {
+	row := s.db.QueryRow(ctx, "SELECT id, username, password_hash FROM users WHERE username = $1", username)
+
+	user := User{}
+
+	if err := row.Scan(&user.ID, &user.Username, &user.PasswordHash); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
