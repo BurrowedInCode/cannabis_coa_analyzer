@@ -37,3 +37,11 @@ type Analysis struct {
 	Terpenes         []Terpene     `json:"terpenes"`
 	Summary          []TestSummary `json:"summary"`
 }
+
+type AnalysisSummary struct {
+	ID               string    `json:"id"`
+	SampleName       string    `json:"sample_name"`
+	SeedToSaleNumber string    `json:"seed_to_sale_number"`
+	TestDate         time.Time `json:"test_date"`
+	OverallPass      bool      `json:"overall_pass"`
+}
