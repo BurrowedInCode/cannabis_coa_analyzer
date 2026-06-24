@@ -13,7 +13,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 
-export const Route = createFileRoute('/table')({
+export const Route = createFileRoute('/analyses')({
   component: COATable,
 })
 
@@ -62,11 +62,14 @@ function COATable() {
             ) : (
               analyses?.map((analysis) => (
                 <TableRow key={analysis.id} className="cursor-pointer">
-                  <TableCell>{new Date(analysis.test_date).toLocaleDateString("en-US", {
-                    month: "2-digit",
-                    day: "2-digit",
-                    year: "numeric",
-                  })}</TableCell>
+                  <TableCell>{
+                    new Date(analysis.test_date).toLocaleDateString("en-US", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                    }
+                    )}
+                  </TableCell>
                   <TableCell>{analysis.seed_to_sale_number}</TableCell>
                   <TableCell>{analysis.sample_name}</TableCell>
                   <TableCell>{analysis.overall_pass ? "Pass" : "Fail"}</TableCell>

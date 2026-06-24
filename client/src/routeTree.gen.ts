@@ -10,17 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadRouteImport } from './routes/upload'
-import { Route as TableRouteImport } from './routes/table'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AnalysesRouteImport } from './routes/analyses'
 
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TableRoute = TableRouteImport.update({
-  id: '/table',
-  path: '/table',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -28,34 +23,39 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalysesRoute = AnalysesRouteImport.update({
+  id: '/analyses',
+  path: '/analyses',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
+  '/analyses': typeof AnalysesRoute
   '/login': typeof LoginRoute
-  '/table': typeof TableRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesByTo {
+  '/analyses': typeof AnalysesRoute
   '/login': typeof LoginRoute
-  '/table': typeof TableRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/analyses': typeof AnalysesRoute
   '/login': typeof LoginRoute
-  '/table': typeof TableRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/table' | '/upload'
+  fullPaths: '/analyses' | '/login' | '/upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/table' | '/upload'
-  id: '__root__' | '/login' | '/table' | '/upload'
+  to: '/analyses' | '/login' | '/upload'
+  id: '__root__' | '/analyses' | '/login' | '/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AnalysesRoute: typeof AnalysesRoute
   LoginRoute: typeof LoginRoute
-  TableRoute: typeof TableRoute
   UploadRoute: typeof UploadRoute
 }
 
@@ -68,13 +68,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UploadRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/table': {
-      id: '/table'
-      path: '/table'
-      fullPath: '/table'
-      preLoaderRoute: typeof TableRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -82,12 +75,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analyses': {
+      id: '/analyses'
+      path: '/analyses'
+      fullPath: '/analyses'
+      preLoaderRoute: typeof AnalysesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  AnalysesRoute: AnalysesRoute,
   LoginRoute: LoginRoute,
-  TableRoute: TableRoute,
   UploadRoute: UploadRoute,
 }
 export const routeTree = rootRouteImport
