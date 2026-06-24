@@ -96,3 +96,13 @@ func (s *Store) GetAllCOAAnalyses(ctx context.Context, limit int, offset int) ([
 
 	return analysesSummary, nil
 }
+
+func (s *Store) GetCOAAnalysis(ctx context.Context, id string) (*Analysis, error) {
+	var analysisID int
+	var analysis *Analysis
+	if err := s.db.QueryRow(ctx, `SELECT a.id, a.sample_name, a.seed_to_sale_number, a.sample_matrix, a.test_date, 
+		a.overall_pass, l.name, l.address, l.phone, l.certification FROM analyses a INNER JOIN laboratories l ON a.laboratory_id = l.id WHERE a.id=$1`, id).Scan(&analysisID); err != nil {
+		return nil, fmt.Errorf("failed to query analysis: %w", err)
+	}
+	return analysis, nil
+}
