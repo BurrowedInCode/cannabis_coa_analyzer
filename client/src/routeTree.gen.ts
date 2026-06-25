@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as AnalysesRouteImport } from './routes/analyses'
 
 const UploadRoute = UploadRouteImport.update({
@@ -23,6 +24,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalysisRoute = AnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalysesRoute = AnalysesRouteImport.update({
   id: '/analyses',
   path: '/analyses',
@@ -31,30 +37,34 @@ const AnalysesRoute = AnalysesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/analyses': typeof AnalysesRoute
+  '/analysis': typeof AnalysisRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesByTo {
   '/analyses': typeof AnalysesRoute
+  '/analysis': typeof AnalysisRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/analyses': typeof AnalysesRoute
+  '/analysis': typeof AnalysisRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/analyses' | '/login' | '/upload'
+  fullPaths: '/analyses' | '/analysis' | '/login' | '/upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/analyses' | '/login' | '/upload'
-  id: '__root__' | '/analyses' | '/login' | '/upload'
+  to: '/analyses' | '/analysis' | '/login' | '/upload'
+  id: '__root__' | '/analyses' | '/analysis' | '/login' | '/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AnalysesRoute: typeof AnalysesRoute
+  AnalysisRoute: typeof AnalysisRoute
   LoginRoute: typeof LoginRoute
   UploadRoute: typeof UploadRoute
 }
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analysis': {
+      id: '/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof AnalysisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analyses': {
       id: '/analyses'
       path: '/analyses'
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   AnalysesRoute: AnalysesRoute,
+  AnalysisRoute: AnalysisRoute,
   LoginRoute: LoginRoute,
   UploadRoute: UploadRoute,
 }
