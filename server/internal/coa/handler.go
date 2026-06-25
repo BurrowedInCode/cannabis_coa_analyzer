@@ -81,3 +81,30 @@ func GetAllCOAAnalysesHandler(logger *slog.Logger, store *Store) http.HandlerFun
 		}
 	}
 }
+
+func GetCOAAnalysisHandler(logger *slog.Logger, store *Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		analysisID := r.PathValue("id")
+
+		if analysisID == "" {
+			http.Error(w, "missing analysis id", http.StatusBadRequest)
+			return
+		}
+
+		analysis, err := store.GetCOAAnalysis(r.Context(), analysisID)
+
+		if err != nil {
+			logger.Error("failed to fetch analysis", "error", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		if err := json.NewEncoder(w).Encode(analysis); err != nil {
+			logger.Error("failed to encode response", "error", err)
+			http.Error(w, "failed to encode response", http.StatusInternalServerError)
+			return
+		}
+	}
+}
