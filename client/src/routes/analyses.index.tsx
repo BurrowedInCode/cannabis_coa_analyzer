@@ -29,7 +29,7 @@ function COATable() {
   return (
     <div className="w-full px-4 py-4 space-y-6">
       <h1 className="text-2xl font-semibold">Analyses Summary</h1>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
