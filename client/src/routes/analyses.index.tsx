@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 export const Route = createFileRoute('/analyses/')({
@@ -18,6 +18,8 @@ export const Route = createFileRoute('/analyses/')({
 })
 
 function COATable() {
+  const navigate = useNavigate()
+
   const [page, setPage] = useState(1)
   const [limit] = useState(20)
   const offset = (page - 1) * limit
@@ -61,7 +63,7 @@ function COATable() {
               </TableRow>
             ) : (
               analyses?.map((analysis) => (
-                <TableRow key={analysis.id} className="cursor-pointer">
+                <TableRow onClick={() => navigate({ to: "/analyses/$analysisID", params: { analysisID: analysis.id } })} key={analysis.id} className="cursor-pointer">
                   <TableCell>{
                     new Date(analysis.test_date).toLocaleDateString("en-US", {
                       month: "2-digit",
