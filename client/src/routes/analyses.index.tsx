@@ -27,7 +27,7 @@ function COATable() {
   const { data: analyses, isLoading, isError } = useQuery({ queryKey: ['analyses', limit, page], queryFn: () => getAllCOAAnalyses(limit, offset) })
 
   return (
-    <div className="space-y-6">
+    <div className="w-full px-4 py-4 space-y-6">
       <h1 className="text-2xl font-semibold">Analyses Summary</h1>
       <div className="rounded-md border">
         <Table>
@@ -82,7 +82,7 @@ function COATable() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-center gap-2">
         <Button
           variant="outline"
           size="sm"
