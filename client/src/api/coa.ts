@@ -40,3 +40,19 @@ export async function getAllCOAAnalyses(limit: number, offset: number): Promise<
   return res.json()
 }
 
+export async function getCOAAnalysis(id: string): Promise<Analysis> {
+  const res = await fetch(`${BASE_URL}/coa/analyses/${id}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json"
+    },
+    credentials: "include",
+  })
+
+  if (!res.ok) {
+    const message = await res.text()
+    throw new Error(message)
+  }
+
+  return res.json()
+}

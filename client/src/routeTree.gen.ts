@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AnalysisRouteImport } from './routes/analysis'
-import { Route as AnalysesRouteImport } from './routes/analyses'
+import { Route as AnalysesIndexRouteImport } from './routes/analyses.index'
+import { Route as AnalysesAnalysisIDRouteImport } from './routes/analyses.$analysisID'
 
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
@@ -24,49 +24,49 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnalysisRoute = AnalysisRouteImport.update({
-  id: '/analysis',
-  path: '/analysis',
+const AnalysesIndexRoute = AnalysesIndexRouteImport.update({
+  id: '/analyses/',
+  path: '/analyses/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnalysesRoute = AnalysesRouteImport.update({
-  id: '/analyses',
-  path: '/analyses',
+const AnalysesAnalysisIDRoute = AnalysesAnalysisIDRouteImport.update({
+  id: '/analyses/$analysisID',
+  path: '/analyses/$analysisID',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/analyses': typeof AnalysesRoute
-  '/analysis': typeof AnalysisRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
+  '/analyses/$analysisID': typeof AnalysesAnalysisIDRoute
+  '/analyses/': typeof AnalysesIndexRoute
 }
 export interface FileRoutesByTo {
-  '/analyses': typeof AnalysesRoute
-  '/analysis': typeof AnalysisRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
+  '/analyses/$analysisID': typeof AnalysesAnalysisIDRoute
+  '/analyses': typeof AnalysesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/analyses': typeof AnalysesRoute
-  '/analysis': typeof AnalysisRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
+  '/analyses/$analysisID': typeof AnalysesAnalysisIDRoute
+  '/analyses/': typeof AnalysesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/analyses' | '/analysis' | '/login' | '/upload'
+  fullPaths: '/login' | '/upload' | '/analyses/$analysisID' | '/analyses/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/analyses' | '/analysis' | '/login' | '/upload'
-  id: '__root__' | '/analyses' | '/analysis' | '/login' | '/upload'
+  to: '/login' | '/upload' | '/analyses/$analysisID' | '/analyses'
+  id: '__root__' | '/login' | '/upload' | '/analyses/$analysisID' | '/analyses/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AnalysesRoute: typeof AnalysesRoute
-  AnalysisRoute: typeof AnalysisRoute
   LoginRoute: typeof LoginRoute
   UploadRoute: typeof UploadRoute
+  AnalysesAnalysisIDRoute: typeof AnalysesAnalysisIDRoute
+  AnalysesIndexRoute: typeof AnalysesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -85,28 +85,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/analysis': {
-      id: '/analysis'
-      path: '/analysis'
-      fullPath: '/analysis'
-      preLoaderRoute: typeof AnalysisRouteImport
+    '/analyses/': {
+      id: '/analyses/'
+      path: '/analyses'
+      fullPath: '/analyses/'
+      preLoaderRoute: typeof AnalysesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/analyses': {
-      id: '/analyses'
-      path: '/analyses'
-      fullPath: '/analyses'
-      preLoaderRoute: typeof AnalysesRouteImport
+    '/analyses/$analysisID': {
+      id: '/analyses/$analysisID'
+      path: '/analyses/$analysisID'
+      fullPath: '/analyses/$analysisID'
+      preLoaderRoute: typeof AnalysesAnalysisIDRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  AnalysesRoute: AnalysesRoute,
-  AnalysisRoute: AnalysisRoute,
   LoginRoute: LoginRoute,
   UploadRoute: UploadRoute,
+  AnalysesAnalysisIDRoute: AnalysesAnalysisIDRoute,
+  AnalysesIndexRoute: AnalysesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
