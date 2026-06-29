@@ -45,7 +45,7 @@ function RouteComponent() {
         <h1 className=" mt-4 text-2xl font-semibold">Analysis: {analysis?.seed_to_sale_number ?? ""}</h1>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Analysis Info</CardTitle>
@@ -111,7 +111,7 @@ function RouteComponent() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Cannabinoids</CardTitle>
