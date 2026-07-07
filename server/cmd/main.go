@@ -47,6 +47,7 @@ func main() {
 	mux.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, coaSvc, coaStore))
 	mux.Handle("GET /coa/analyses", coa.GetAllCOAAnalysesHandler(logger, coaStore))
 	mux.Handle("GET /coa/analyses/{id}", coa.GetCOAAnalysisHandler(logger, coaStore))
+	mux.Handle("PUT /coa/analyses/{id}", coa.UpdateCOAAnalysisHandler(logger, coaStore))
 	mux.Handle("POST /user/register", auth.RegisterUserHandler(logger, loginStore))
 	mux.Handle("POST /user/login", auth.LoginUserHandler(logger, loginStore, os.Getenv("JWT_SECRET")))
 	server := &http.Server{

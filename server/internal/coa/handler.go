@@ -108,3 +108,28 @@ func GetCOAAnalysisHandler(logger *slog.Logger, store *Store) http.HandlerFunc {
 		}
 	}
 }
+
+func UpdateCOAAnalysisHandler(logger *slog.Logger, store *Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		analysisID := r.PathValue("id")
+
+		if analysisID == "" {
+			http.Error(w, "missing analysis id", http.StatusBadRequest)
+			return
+		}
+
+		var a Analysis
+		if err := json.NewDecoder(r.Body).Decode(&a); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if err := store.UpdateCOAAnalysis(r.Context(), analysisID, &a); err != nil {
+			logger.Error("failed to update analysis", "error", err)
+			http.Error(w, "failed to update analysis", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}

@@ -15,6 +15,7 @@ type COAStore interface {
 	StoreCOAAnalysis(ctx context.Context, a *Analysis) error
 	GetAllCOAAnalyses(ctx context.Context, limit int, offset int) ([]*AnalysisSummary, error)
 	GetCOAAnalysis(ctx context.Context, id string) (*Analysis, error)
+	UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) error
 }
 
 func NewStore(db *pgxpool.Pool) *Store {
@@ -176,4 +177,73 @@ func (s *Store) GetCOAAnalysis(ctx context.Context, id string) (*Analysis, error
 	}
 
 	return analysis, nil
+}
+
+func (s *Store) UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx,
+		`UPDATE analyses
+		 SET sample_name=$1, seed_to_sale_number=$2, sample_matrix=$3, test_date=$4, overall_pass=$5
+		 WHERE id=$6`,
+		a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update analysis: %w", err)
+	}
+
+	_, err = tx.Exec(ctx,
+		`UPDATE laboratories
+		 SET name=$1, address=$2, phone=$3, certification=$4
+		 WHERE id=(SELECT laboratory_id FROM analyses WHERE id=$5)`,
+		a.Laboratory.Name, a.Laboratory.Address, a.Laboratory.Phone, a.Laboratory.Certification, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update laboratory: %w", err)
+	}
+
+	if _, err = tx.Exec(ctx, "DELETE FROM cannabinoids WHERE analysis_id=$1", id); err != nil {
+		return fmt.Errorf("failed to delete cannabinoids: %w", err)
+	}
+	for _, c := range a.Cannabinoids {
+		_, err = tx.Exec(ctx,
+			"INSERT INTO cannabinoids (name, value, unit, analysis_id) VALUES ($1, $2, $3, $4)",
+			c.Name, c.Value, c.Unit, id,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert cannabinoid: %w", err)
+		}
+	}
+
+	if _, err = tx.Exec(ctx, "DELETE FROM terpenes WHERE analysis_id=$1", id); err != nil {
+		return fmt.Errorf("failed to delete terpenes: %w", err)
+	}
+	for _, t := range a.Terpenes {
+		_, err = tx.Exec(ctx,
+			"INSERT INTO terpenes (name, value, unit, analysis_id) VALUES ($1, $2, $3, $4)",
+			t.Name, t.Value, t.Unit, id,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert terpene: %w", err)
+		}
+	}
+
+	if _, err = tx.Exec(ctx, "DELETE FROM test_summaries WHERE analysis_id=$1", id); err != nil {
+		return fmt.Errorf("failed to delete test summaries: %w", err)
+	}
+	for _, ts := range a.Summary {
+		_, err = tx.Exec(ctx,
+			"INSERT INTO test_summaries (name, status, analysis_id) VALUES ($1, $2, $3)",
+			ts.Name, ts.Status, id,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert test summary: %w", err)
+		}
+	}
+
+	return tx.Commit(ctx)
 }
