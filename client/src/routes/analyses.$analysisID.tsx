@@ -1,11 +1,11 @@
-import { getCOAAnalysis } from '@/api/coa'
+import { getCOAAnalysis, updateCOAAnalysis } from '@/api/coa'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import type { Analysis } from '@/types'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
@@ -37,6 +37,7 @@ const errorRow = (cols: number) => (
 
 function RouteComponent() {
   const { analysisID } = Route.useParams()
+  const queryClient = useQueryClient()
   const { data: analysis, isLoading, isError } = useQuery({ queryKey: ['analysis', analysisID], queryFn: () => getCOAAnalysis(analysisID) })
 
   const [editing, setEditing] = useState(false)
@@ -45,6 +46,14 @@ function RouteComponent() {
   useEffect(() => {
     if (analysis) setFormData(analysis)
   }, [analysis])
+
+  const saveMutation = useMutation({
+    mutationFn: () => updateCOAAnalysis(analysisID, formData!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['analysis', analysisID] })
+      setEditing(false)
+    },
+  })
 
   const handleCancel = () => {
     setFormData(analysis ?? null)
@@ -99,7 +108,9 @@ function RouteComponent() {
           {editing ? (
             <>
               <Button variant="outline" size="sm" onClick={handleCancel}>Cancel</Button>
-              <Button size="sm" onClick={() => setEditing(false)}>Save</Button>
+              <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                {saveMutation.isPending ? "Saving..." : "Save"}
+              </Button>
             </>
           ) : (
             <Button variant="outline" size="sm" onClick={() => setEditing(true)}>Edit</Button>
