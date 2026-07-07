@@ -56,3 +56,19 @@ export async function getCOAAnalysis(id: string): Promise<Analysis> {
 
   return res.json()
 }
+
+export async function updateCOAAnalysis(id: string, analysis: Analysis): Promise<void> {
+  const res = await fetch(`${BASE_URL}/coa/analyses/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(analysis),
+  })
+
+  if (!res.ok) {
+    const message = await res.text()
+    throw new Error(message)
+  }
+}
