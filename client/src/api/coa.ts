@@ -1,13 +1,13 @@
 import type { Analysis, AnalysisSummary } from "@/types"
 const BASE_URL = import.meta.env.VITE_API_URL
 
-export async function analyzeCOA(file: File | null): Promise<Analysis> {
-  if (!file) {
+export async function analyzeCOA(files: File[]): Promise<void> {
+  const formData = new FormData()
+
+  if (files.length === 0) {
     throw new Error("no file selected")
   }
-
-  const formData = new FormData()
-  formData.append("coa", file)
+  files.forEach(file => { formData.append("coa", file) })
 
   const res = await fetch(`${BASE_URL}/coa/analyze`, {
     method: "POST",
@@ -20,7 +20,6 @@ export async function analyzeCOA(file: File | null): Promise<Analysis> {
     throw new Error(message)
   }
 
-  return res.json()
 }
 
 export async function getAllCOAAnalyses(limit: number, offset: number): Promise<AnalysisSummary[]> {
