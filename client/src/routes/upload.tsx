@@ -12,10 +12,10 @@ export const Route = createFileRoute('/upload')({
 
 function Upload() {
   const navigate = useNavigate()
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFile] = useState<File[]>([])
 
   const mutation = useMutation({
-    mutationFn: () => analyzeCOA(file),
+    mutationFn: () => analyzeCOA(files),
     onSuccess: () => navigate({ to: "/analyses" }),
     onError: () => console.log("error sending"),
   })
@@ -36,9 +36,10 @@ function Upload() {
             <Input
               type="file"
               accept=".pdf"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              multiple
+              onChange={(e) => setFile(Array.from(e.target.files ?? []))}
             />
-            <Button type="submit" className="w-full" disabled={!file || mutation.isPending}>
+            <Button type="submit" className="w-full" disabled={files.length === 0 || mutation.isPending}>
               {mutation.isPending ? "Analyzing..." : "Analyze"}
             </Button>
             {mutation.isError && (
