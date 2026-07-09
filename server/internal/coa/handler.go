@@ -1,11 +1,51 @@
 package coa
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"strconv"
+	"sync"
 )
+
+const workers = 5
+
+func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *Store, fh *multipart.FileHeader, errCh chan<- error) {
+	file, err := fh.Open()
+	if err != nil {
+		errCh <- err
+		return
+	}
+	defer file.Close()
+
+	uploaded, err := svc.UploadCOA(ctx, file, fh.Filename, fh.Header.Get("Content-Type"))
+	if err != nil {
+		logger.Error("Failed to upload COA", "error", err)
+		errCh <- err
+		return
+	}
+
+	result, err := svc.AnalyzeCOA(ctx, uploaded.ID)
+	if err != nil {
+		logger.Error("failed to analyze COA", "error", err)
+		errCh <- err
+		return
+	}
+
+	if err := svc.DeleteCOA(ctx, uploaded.ID); err != nil {
+		logger.Error("Failed to delete COA", "error", err)
+	}
+
+	err = store.StoreCOAAnalysis(ctx, result)
+
+	if err != nil {
+		logger.Error("failed to store analysis", "error", err)
+		errCh <- err
+		return
+	}
+}
 
 func AnalyzeCOAHandler(logger *slog.Logger, svc *Service, store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -18,41 +58,34 @@ func AnalyzeCOAHandler(logger *slog.Logger, svc *Service, store *Store) http.Han
 
 		files := r.MultipartForm.File["coa"]
 
+		var wg sync.WaitGroup
+		jobs := make(chan *multipart.FileHeader, len(files))
+		errCh := make(chan error, len(files))
+
 		for _, fh := range files {
-			file, err := fh.Open()
+			wg.Add(1)
+			jobs <- fh
+		}
+		close(jobs)
+
+		for range workers {
+			go func() {
+				for fh := range jobs {
+					processCOA(r.Context(), logger, svc, store, fh, errCh)
+					wg.Done()
+				}
+			}()
+		}
+
+		wg.Wait()
+
+		close(errCh)
+
+		for err := range errCh {
 			if err != nil {
-				http.Error(w, "missing coa file", http.StatusBadRequest)
+				http.Error(w, "failed to process COA", http.StatusInternalServerError)
 				return
 			}
-
-			uploaded, err := svc.UploadCOA(r.Context(), file, fh.Filename, fh.Header.Get("Content-Type"))
-			if err != nil {
-				logger.Error("Failed to upload COA", "error", err)
-				http.Error(w, "failed to upload file", http.StatusInternalServerError)
-				return
-			}
-
-			file.Close()
-
-			result, err := svc.AnalyzeCOA(r.Context(), uploaded.ID)
-			if err != nil {
-				logger.Error("failed to analyze COA", "error", err)
-				http.Error(w, "failed to analyze file", http.StatusInternalServerError)
-				return
-			}
-
-			if err := svc.DeleteCOA(r.Context(), uploaded.ID); err != nil {
-				logger.Error("Failed to delete COA", "error", err)
-			}
-
-			err = store.StoreCOAAnalysis(r.Context(), result)
-
-			if err != nil {
-				logger.Error("failed to store analysis", "error", err)
-				http.Error(w, "failed to store analysis", http.StatusInternalServerError)
-				return
-			}
-
 		}
 		w.WriteHeader(http.StatusNoContent)
 	}
