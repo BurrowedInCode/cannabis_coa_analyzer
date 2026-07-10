@@ -10,7 +10,39 @@ import (
 	"sync"
 )
 
-const workers = 5
+type job struct {
+	fh    *multipart.FileHeader
+	ctx   context.Context
+	errCh chan<- error
+	wg    *sync.WaitGroup
+}
+
+type WorkerPool struct {
+	jobs   chan job
+	logger *slog.Logger
+	svc    *Service
+	store  *Store
+}
+
+func NewWorkerPool(logger *slog.Logger, svc *Service, store *Store, n int) *WorkerPool {
+	wp := &WorkerPool{
+		jobs:   make(chan job),
+		logger: logger,
+		svc:    svc,
+		store:  store,
+	}
+
+	for range n {
+		go func() {
+			for j := range wp.jobs {
+				processCOA(j.ctx, logger, svc, store, j.fh, j.errCh)
+				j.wg.Done()
+			}
+		}()
+	}
+
+	return wp
+}
 
 func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *Store, fh *multipart.FileHeader, errCh chan<- error) {
 	file, err := fh.Open()
@@ -47,7 +79,7 @@ func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *S
 	}
 }
 
-func AnalyzeCOAHandler(logger *slog.Logger, svc *Service, store *Store) http.HandlerFunc {
+func AnalyzeCOAHandler(logger *slog.Logger, wp *WorkerPool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
@@ -59,22 +91,11 @@ func AnalyzeCOAHandler(logger *slog.Logger, svc *Service, store *Store) http.Han
 		files := r.MultipartForm.File["coa"]
 
 		var wg sync.WaitGroup
-		jobs := make(chan *multipart.FileHeader, len(files))
 		errCh := make(chan error, len(files))
 
 		for _, fh := range files {
 			wg.Add(1)
-			jobs <- fh
-		}
-		close(jobs)
-
-		for range workers {
-			go func() {
-				for fh := range jobs {
-					processCOA(r.Context(), logger, svc, store, fh, errCh)
-					wg.Done()
-				}
-			}()
+			wp.jobs <- job{fh: fh, ctx: r.Context(), errCh: errCh, wg: &wg}
 		}
 
 		wg.Wait()

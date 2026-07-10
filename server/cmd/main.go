@@ -44,7 +44,9 @@ func main() {
 	loginStore := auth.NewStore(db)
 
 	mux := http.NewServeMux()
-	mux.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, coaSvc, coaStore))
+
+	pool := coa.NewWorkerPool(logger, coaSvc, coaStore, 2)
+	mux.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, pool))
 	mux.Handle("GET /coa/analyses", coa.GetAllCOAAnalysesHandler(logger, coaStore))
 	mux.Handle("GET /coa/analyses/{id}", coa.GetCOAAnalysisHandler(logger, coaStore))
 	mux.Handle("PUT /coa/analyses/{id}", coa.UpdateCOAAnalysisHandler(logger, coaStore))
