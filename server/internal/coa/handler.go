@@ -10,76 +10,44 @@ import (
 	"sync"
 )
 
-type job struct {
-	fh    *multipart.FileHeader
-	ctx   context.Context
-	errCh chan<- error
-	wg    *sync.WaitGroup
+type coaResult struct {
+	filename string
+	err      error
 }
 
-type WorkerPool struct {
-	jobs   chan job
-	logger *slog.Logger
-	svc    *Service
-	store  *Store
-}
-
-func NewWorkerPool(logger *slog.Logger, svc *Service, store *Store, n int) *WorkerPool {
-	wp := &WorkerPool{
-		jobs:   make(chan job),
-		logger: logger,
-		svc:    svc,
-		store:  store,
-	}
-
-	for range n {
-		go func() {
-			for j := range wp.jobs {
-				processCOA(j.ctx, logger, svc, store, j.fh, j.errCh)
-				j.wg.Done()
-			}
-		}()
-	}
-
-	return wp
-}
-
-func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *Store, fh *multipart.FileHeader, errCh chan<- error) {
+func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *Store, fh *multipart.FileHeader) coaResult {
 	file, err := fh.Open()
 	if err != nil {
-		errCh <- err
-		return
+		return coaResult{filename: fh.Filename, err: err}
 	}
 	defer file.Close()
 
 	uploaded, err := svc.UploadCOA(ctx, file, fh.Filename, fh.Header.Get("Content-Type"))
 	if err != nil {
 		logger.Error("Failed to upload COA", "error", err)
-		errCh <- err
-		return
+		return coaResult{filename: fh.Filename, err: err}
 	}
 
 	result, err := svc.AnalyzeCOA(ctx, uploaded.ID)
 	if err != nil {
 		logger.Error("failed to analyze COA", "error", err)
-		errCh <- err
-		return
+		return coaResult{filename: fh.Filename, err: err}
+	}
+
+	if err := store.StoreCOAAnalysis(ctx, result); err != nil {
+		logger.Error("failed to store analysis", "error", err)
+		return coaResult{filename: fh.Filename, err: err}
 	}
 
 	if err := svc.DeleteCOA(ctx, uploaded.ID); err != nil {
 		logger.Error("Failed to delete COA", "error", err)
 	}
 
-	err = store.StoreCOAAnalysis(ctx, result)
-
-	if err != nil {
-		logger.Error("failed to store analysis", "error", err)
-		errCh <- err
-		return
-	}
+	return coaResult{filename: fh.Filename}
 }
 
-func AnalyzeCOAHandler(logger *slog.Logger, wp *WorkerPool) http.HandlerFunc {
+func AnalyzeCOAHandler(logger *slog.Logger, svc *Service, store *Store) http.HandlerFunc {
+	sem := make(chan struct{}, 10)
 	return func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
@@ -89,24 +57,40 @@ func AnalyzeCOAHandler(logger *slog.Logger, wp *WorkerPool) http.HandlerFunc {
 		}
 
 		files := r.MultipartForm.File["coa"]
-
 		var wg sync.WaitGroup
-		errCh := make(chan error, len(files))
+		resCh := make(chan coaResult, len(files))
 
 		for _, fh := range files {
 			wg.Add(1)
-			wp.jobs <- job{fh: fh, ctx: r.Context(), errCh: errCh, wg: &wg}
+			sem <- struct{}{}
+			go func(fh *multipart.FileHeader) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				resCh <- processCOA(r.Context(), logger, svc, store, fh)
+			}(fh)
 		}
 
 		wg.Wait()
+		close(resCh)
 
-		close(errCh)
-
-		for err := range errCh {
-			if err != nil {
-				http.Error(w, "failed to process COA", http.StatusInternalServerError)
-				return
+		var succeeded, failed []string
+		for res := range resCh {
+			if res.err != nil {
+				failed = append(failed, res.filename)
+				logger.Error("processing failed", "file", res.filename, "error", res.err)
+			} else {
+				succeeded = append(succeeded, res.filename)
 			}
+		}
+
+		if len(failed) > 0 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusMultiStatus)
+			json.NewEncoder(w).Encode(map[string][]string{
+				"succeeded": succeeded,
+				"failed":    failed,
+			})
+			return
 		}
 		w.WriteHeader(http.StatusNoContent)
 	}
