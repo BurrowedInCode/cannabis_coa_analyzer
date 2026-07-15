@@ -22,7 +22,7 @@ func NewStore(db *pgxpool.Pool) *Store {
 	return &Store{db: db}
 }
 
-func (s *Store) StoreCOAAnalysis(ctx context.Context, a *Analysis) error {
+func (s *Store) StoreCOAAnalysis(ctx context.Context, a *Analysis, u Usage) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -36,7 +36,7 @@ func (s *Store) StoreCOAAnalysis(ctx context.Context, a *Analysis) error {
 	}
 
 	var analysisID string
-	err = tx.QueryRow(ctx, "INSERT INTO analyses (sample_name, seed_to_sale_number, sample_matrix, test_date, overall_pass, laboratory_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id", a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass, labID).Scan(&analysisID)
+	err = tx.QueryRow(ctx, "INSERT INTO analyses (sample_name, seed_to_sale_number, sample_matrix, test_date, overall_pass, laboratory_id, input_tokens, output_tokens) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass, u.InputTokens, u.OutputTokens, labID).Scan(&analysisID)
 	if err != nil {
 		return fmt.Errorf("failed to insert analysis: %w", err)
 	}
