@@ -41,7 +41,7 @@ func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *S
 		"cost_usd", usage.CostUSD(),
 	)
 
-	if err := store.StoreCOAAnalysis(ctx, result); err != nil {
+	if err := store.StoreCOAAnalysis(ctx, result, usage); err != nil {
 		logger.Error("failed to store analysis", "error", err)
 		return coaResult{filename: fh.Filename, err: err}
 	}
