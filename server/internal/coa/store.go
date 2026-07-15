@@ -36,7 +36,7 @@ func (s *Store) StoreCOAAnalysis(ctx context.Context, a *Analysis, u Usage) erro
 	}
 
 	var analysisID string
-	err = tx.QueryRow(ctx, "INSERT INTO analyses (sample_name, seed_to_sale_number, sample_matrix, test_date, overall_pass, laboratory_id, input_tokens, output_tokens) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass, u.InputTokens, u.OutputTokens, labID).Scan(&analysisID)
+	err = tx.QueryRow(ctx, "INSERT INTO analyses (sample_name, seed_to_sale_number, sample_matrix, test_date, overall_pass, laboratory_id, input_tokens, output_tokens) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass, labID, u.InputTokens, u.OutputTokens).Scan(&analysisID)
 	if err != nil {
 		return fmt.Errorf("failed to insert analysis: %w", err)
 	}
