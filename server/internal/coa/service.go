@@ -111,36 +111,53 @@ func extractJSON(s string) string {
 	return strings.TrimSpace(s)
 }
 
-func (s *Service) AnalyzeCOA(ctx context.Context, fileID string) (*Analysis, error) {
-	msg, err := s.client.Beta.Messages.New(context.Background(),
-		anthropic.BetaMessageNewParams{
-			Model:       anthropic.ModelClaudeHaiku4_5,
-			MaxTokens:   1024,
-			Temperature: anthropic.Float(0),
-			Betas:       []anthropic.AnthropicBeta{anthropic.AnthropicBetaFilesAPI2025_04_14},
-			Messages: []anthropic.BetaMessageParam{
-				anthropic.NewBetaUserMessage(
-					anthropic.NewBetaTextBlock(s.prompt),
-					anthropic.NewBetaDocumentBlock(anthropic.BetaFileDocumentSourceParam{
-						FileID: fileID,
-					}),
-				),
-			},
-		})
+type Usage struct {
+	InputTokens  int64
+	OutputTokens int64
+}
+
+func (u Usage) CostUSD() float64 {
+	const inputPerMTok = 1.00 // claude-haiku-4-5
+	const outputPerMTok = 5.00
+	return float64(u.InputTokens)/1e6*inputPerMTok + float64(u.OutputTokens)/1e6*outputPerMTok
+}
+
+func (s *Service) AnalyzeCOA(ctx context.Context, fileID string) (*Analysis, Usage, error) {
+	msg, err := s.client.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
+		Model: anthropic.ModelClaudeHaiku4_5,
+
+		MaxTokens:   1024,
+		Temperature: anthropic.Float(0),
+		Betas:       []anthropic.AnthropicBeta{anthropic.AnthropicBetaFilesAPI2025_04_14},
+		Messages: []anthropic.BetaMessageParam{
+			anthropic.NewBetaUserMessage(
+				anthropic.NewBetaTextBlock(s.prompt),
+				anthropic.NewBetaDocumentBlock(anthropic.BetaFileDocumentSourceParam{
+					FileID: fileID,
+				}),
+			),
+		},
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to analyze COA: %w", err)
+		return nil, Usage{}, fmt.Errorf("failed to analyze COA: %w", err)
 	}
+
+	usage := Usage{
+		InputTokens:  msg.Usage.InputTokens,
+		OutputTokens: msg.Usage.OutputTokens,
+	}
+
 	for _, block := range msg.Content {
 		if b, ok := block.AsAny().(anthropic.BetaTextBlock); ok {
 			var analysis Analysis
 			if err := json.Unmarshal([]byte(extractJSON(b.Text)), &analysis); err != nil {
-				return nil, fmt.Errorf("failed to parse COA response: %w", err)
+				return nil, usage, fmt.Errorf("failed to parse COA response: %w", err)
 			}
 			normalizeJSON(&analysis)
-			return &analysis, nil
+			return &analysis, usage, nil
 		}
 	}
-	return nil, fmt.Errorf("no text response from Claude")
+	return nil, usage, fmt.Errorf("no text response from Claude")
 }
 
 func (s *Service) DeleteCOA(ctx context.Context, fileID string) error {

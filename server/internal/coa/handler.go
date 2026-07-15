@@ -28,11 +28,18 @@ func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *S
 		return coaResult{filename: fh.Filename, err: err}
 	}
 
-	result, err := svc.AnalyzeCOA(ctx, uploaded.ID)
+	result, usage, err := svc.AnalyzeCOA(ctx, uploaded.ID)
 	if err != nil {
 		logger.Error("failed to analyze COA", "error", err)
 		return coaResult{filename: fh.Filename, err: err}
 	}
+
+	logger.Info("COA analyzed",
+		"file", fh.Filename,
+		"input_tokens", usage.InputTokens,
+		"output_tokens", usage.OutputTokens,
+		"cost_usd", usage.CostUSD(),
+	)
 
 	if err := store.StoreCOAAnalysis(ctx, result); err != nil {
 		logger.Error("failed to store analysis", "error", err)
