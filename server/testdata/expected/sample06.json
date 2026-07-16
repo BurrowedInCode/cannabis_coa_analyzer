@@ -1,0 +1,71 @@
+{
+  "laboratory": {
+    "name": "Modern Canna",
+    "address": "4705 Old Rd 37, Lakeland, FL 33813",
+    "phone": "863-608-7800",
+    "certification": "CMTL-0005"
+  },
+  "sample_name": "Encore SC RSO Concord Grape",
+  "seed_to_sale_number": "4536520512182103",
+  "sample_matrix": "Gelatins",
+  "test_date": "2026-06-26T00:00:00Z",
+  "overall_pass": true,
+  "cannabinoids": [
+    {
+      "name": "Total THC",
+      "value": 0.211,
+      "unit": "%"
+    },
+    {
+      "name": "Total CBD",
+      "value": 0,
+      "unit": "%"
+    },
+    {
+      "name": "Total Cannabinoids",
+      "value": 226,
+      "unit": "%"
+    }
+  ],
+  "terpenes": [
+    {
+      "name": "alpha-Bisabolol",
+      "value": 0.00546,
+      "unit": "%"
+    }
+  ],
+  "summary": [
+    {
+      "name": "Microbials",
+      "status": "Pass"
+    },
+    {
+      "name": "Pesticides",
+      "status": "Pass"
+    },
+    {
+      "name": "Heavy Metals",
+      "status": "Pass"
+    },
+    {
+      "name": "Mycotoxins",
+      "status": "Pass"
+    },
+    {
+      "name": "Foreign Materials",
+      "status": "Pass"
+    },
+    {
+      "name": "Moisture Content",
+      "status": "Not Tested"
+    },
+    {
+      "name": "Residual Solvents",
+      "status": "Pass"
+    },
+    {
+      "name": "Water Activity",
+      "status": "Pass"
+    }
+  ]
+}

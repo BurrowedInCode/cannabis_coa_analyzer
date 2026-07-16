@@ -1,0 +1,81 @@
+{
+  "laboratory": {
+    "name": "Modern Canna",
+    "address": "4705 Old Rd 37, Lakeland, FL 33813",
+    "phone": "863-608-7800",
+    "certification": "CMTL-0005"
+  },
+  "sample_name": "MODERN FLOWER - SATIVA FLOWER",
+  "seed_to_sale_number": "9854463684273110",
+  "sample_matrix": "Whole Flower",
+  "test_date": "2026-06-14T00:00:00Z",
+  "overall_pass": true,
+  "cannabinoids": [
+    {
+      "name": "Total THC",
+      "value": 34.2,
+      "unit": "%"
+    },
+    {
+      "name": "Total CBD",
+      "value": 0.107,
+      "unit": "%"
+    },
+    {
+      "name": "Total Cannabinoids",
+      "value": 40.7,
+      "unit": "%"
+    }
+  ],
+  "terpenes": [
+    {
+      "name": "beta-Caryophyllene",
+      "value": 0.976,
+      "unit": "%"
+    },
+    {
+      "name": "beta-Myrcene",
+      "value": 0.549,
+      "unit": "%"
+    },
+    {
+      "name": "d-Limonene ",
+      "value": 0.256,
+      "unit": "%"
+    }
+  ],
+  "summary": [
+    {
+      "name": "Microbials",
+      "status": "Pass"
+    },
+    {
+      "name": "Pesticides",
+      "status": "Pass"
+    },
+    {
+      "name": "Heavy Metals",
+      "status": "Pass"
+    },
+    {
+      "name": "Mycotoxins",
+      "status": "Pass"
+    },
+    {
+      "name": "Foreign Materials",
+      "status": "Pass"
+    },
+    {
+      "name": "Moisture Content",
+      "status": "Pass"
+    },
+    {
+      "name": "Residual Solvents",
+      "status": "Not Tested"
+    },
+    {
+      "name": "Water Activity",
+      "status": "Pass"
+    }
+  ]
+}

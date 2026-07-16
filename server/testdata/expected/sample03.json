@@ -1,0 +1,81 @@
+{
+  "laboratory": {
+    "name": "ACS Laboratory",
+    "address": "721 Cortaro Dr. Sun City Center, FL 33573",
+    "phone": "",
+    "certification": "CMTL-0003"
+  },
+  "sample_name": "Chrome Berry",
+  "seed_to_sale_number": "2704384088223755",
+  "sample_matrix": "Flower & Plants (Inhalation - Heated)",
+  "test_date": "2025-06-30T00:00:00Z",
+  "overall_pass": true,
+  "cannabinoids": [
+    {
+      "name": "Total THC",
+      "value": 30.7,
+      "unit": "%"
+    },
+    {
+      "name": "Total CBD",
+      "value": 0.0810,
+      "unit": "%"
+    },
+    {
+      "name": "Total Cannabinoids",
+      "value": 36.6,
+      "unit": "%"
+    }
+  ],
+  "terpenes": [
+    {
+      "name": "Linalool",
+      "value": 0.465,
+      "unit": "%"
+    },
+    {
+      "name": "(R)-(+)-Limonene",
+      "value": 0.449,
+      "unit": "%"
+    },
+    {
+      "name": "trans-Caryophyllene",
+      "value": 0.344,
+      "unit": "%"
+    }
+  ],
+  "summary": [
+    {
+      "name": "Microbials",
+      "status": "Pass"
+    },
+    {
+      "name": "Pesticides",
+      "status": "Pass"
+    },
+    {
+      "name": "Heavy Metals",
+      "status": "Pass"
+    },
+    {
+      "name": "Mycotoxins",
+      "status": "Pass"
+    },
+    {
+      "name": "Foreign Materials",
+      "status": "Pass"
+    },
+    {
+      "name": "Moisture Content",
+      "status": "Pass"
+    },
+    {
+      "name": "Residual Solvents",
+      "status": "Not Tested"
+    },
+    {
+      "name": "Water Activity",
+      "status": "Pass"
+    }
+  ]
+}
