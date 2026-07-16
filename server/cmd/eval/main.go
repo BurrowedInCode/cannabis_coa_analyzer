@@ -56,10 +56,13 @@ func main() {
 			continue
 		}
 
-		correct, checked := eval.Score(expected, actual)
+		correct, checked, missed := eval.Score(expected, actual)
 		totalCorrect += correct
 		totalChecked += checked
 		fmt.Printf("%-24s %d/%d\n", name, correct, checked)
+		if len(missed) > 0 {
+			fmt.Printf("%-24s   missed: %s\n", "", strings.Join(missed, ", "))
+		}
 	}
 
 	if totalChecked == 0 {
