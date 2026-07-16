@@ -12,7 +12,7 @@ type Store struct {
 }
 
 type COAStore interface {
-	StoreCOAAnalysis(ctx context.Context, a *Analysis) error
+	StoreCOAAnalysis(ctx context.Context, a *Analysis, u Usage) error
 	GetAllCOAAnalyses(ctx context.Context, limit int, offset int) ([]*AnalysisSummary, error)
 	GetCOAAnalysis(ctx context.Context, id string) (*Analysis, error)
 	UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) error
