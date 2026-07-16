@@ -10,86 +10,122 @@ import (
 
 // Score grades one extraction against its hand-written answer key (expected).
 // It returns how many fields matched (correct) out of how many were checked
-// (total). The caller divides to get an accuracy percentage.
-func Score(expected, actual *coa.Analysis) (correct, total int) {
+// (total), plus the names of the fields that missed so you can see what to fix.
+func Score(expected, actual *coa.Analysis) (correct, total int, missed []string) {
 	// --- scalar fields: one tick each ---
 	if norm(expected.Laboratory.Name) == norm(actual.Laboratory.Name) {
 		correct++
+	} else {
+		missed = append(missed, "laboratory.name")
 	}
 	total++
 
 	if norm(expected.Laboratory.Address) == norm(actual.Laboratory.Address) {
 		correct++
+	} else {
+		missed = append(missed, "laboratory.address")
 	}
 	total++
 
 	if norm(expected.Laboratory.Phone) == norm(actual.Laboratory.Phone) {
 		correct++
+	} else {
+		missed = append(missed, "laboratory.phone")
 	}
 	total++
 
 	if norm(expected.Laboratory.Certification) == norm(actual.Laboratory.Certification) {
 		correct++
+	} else {
+		missed = append(missed, "laboratory.certification")
 	}
 	total++
 
 	if norm(expected.SampleName) == norm(actual.SampleName) {
 		correct++
+	} else {
+		missed = append(missed, "sample_name")
 	}
 	total++
 
 	if norm(expected.SeedToSaleNumber) == norm(actual.SeedToSaleNumber) {
 		correct++
+	} else {
+		missed = append(missed, "seed_to_sale_number")
 	}
 	total++
 
 	if norm(expected.SampleMatrix) == norm(actual.SampleMatrix) {
 		correct++
+	} else {
+		missed = append(missed, "sample_matrix")
 	}
 	total++
 
 	if sameDate(expected.TestDate, actual.TestDate) {
 		correct++
+	} else {
+		missed = append(missed, "test_date")
 	}
 	total++
 
 	if expected.OverallPass == actual.OverallPass {
 		correct++
+	} else {
+		missed = append(missed, "overall_pass")
 	}
 	total++
 
 	// --- list fields: search for each expected entry ---
 	for _, want := range expected.Cannabinoids {
+		found := false
 		for _, got := range actual.Cannabinoids {
 			if norm(want.Name) == norm(got.Name) && floatEqual(want.Value, got.Value) {
-				correct++
+				found = true
 				break
 			}
+		}
+		if found {
+			correct++
+		} else {
+			missed = append(missed, "cannabinoid: "+want.Name)
 		}
 		total++
 	}
 
 	for _, want := range expected.Terpenes {
+		found := false
 		for _, got := range actual.Terpenes {
 			if norm(want.Name) == norm(got.Name) && floatEqual(want.Value, got.Value) {
-				correct++
+				found = true
 				break
 			}
+		}
+		if found {
+			correct++
+		} else {
+			missed = append(missed, "terpene: "+want.Name)
 		}
 		total++
 	}
 
 	for _, want := range expected.Summary {
+		found := false
 		for _, got := range actual.Summary {
 			if norm(want.Name) == norm(got.Name) && norm(want.Status) == norm(got.Status) {
-				correct++
+				found = true
 				break
 			}
+		}
+		if found {
+			correct++
+		} else {
+			missed = append(missed, "summary: "+want.Name)
 		}
 		total++
 	}
 
-	return correct, total
+	return correct, total, missed
 }
 
 // norm makes string comparison forgiving: "Green Labs" and "green labs " match.
