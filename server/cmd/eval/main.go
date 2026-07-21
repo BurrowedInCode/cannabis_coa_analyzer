@@ -60,8 +60,8 @@ func main() {
 		totalCorrect += correct
 		totalChecked += checked
 		fmt.Printf("%-24s %d/%d\n", name, correct, checked)
-		if len(missed) > 0 {
-			fmt.Printf("%-24s   missed: %s\n", "", strings.Join(missed, ", "))
+		for _, m := range missed {
+			fmt.Printf("    %-26s want %q  got %q\n", m.Field, m.Expected, m.Got)
 		}
 	}
 
