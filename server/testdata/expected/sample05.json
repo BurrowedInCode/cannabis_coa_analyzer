@@ -5,10 +5,10 @@
     "phone": "813-726-3103",
     "certification": "CMTL-00010"
   },
-  "sample_name": "CheryTop",
+  "sample_name": "ChryTop",
   "seed_to_sale_number": "2075390217324293",
   "sample_matrix": "Flower Inhalable",
-  "test_date": "2026-04-27T00:00:00Z",
+  "test_date": "2026-04-08T00:00:00Z",
   "overall_pass": true,
   "cannabinoids": [
     {
@@ -35,7 +35,7 @@
     },
     {
       "name": "beta-Myrcene",
-      "value": 0.300,
+      "value": 0.225,
       "unit": "%"
     },
     {
@@ -62,7 +62,7 @@
       "status": "Pass"
     },
     {
-      "name": "Foreign Materials",
+      "name": "Foreign Matter",
       "status": "Pass"
     },
     {

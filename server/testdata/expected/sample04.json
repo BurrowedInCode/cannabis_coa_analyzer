@@ -8,7 +8,7 @@
   "sample_name": "Rotten Teeth",
   "seed_to_sale_number": "7156569549162011",
   "sample_matrix": "Flower Inhalable",
-  "test_date": "2026-05-28T00:00:00Z",
+  "test_date": "2026-05-29T00:00:00Z",
   "overall_pass": true,
   "cannabinoids": [
     {
@@ -62,7 +62,7 @@
       "status": "Pass"
     },
     {
-      "name": "Foreign Materials",
+      "name": "Foreign Matter",
       "status": "Pass"
     },
     {

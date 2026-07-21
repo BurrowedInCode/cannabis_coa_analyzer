@@ -8,7 +8,7 @@
   "sample_name": "MODERN FLOWER - SATIVA FLOWER",
   "seed_to_sale_number": "9854463684273110",
   "sample_matrix": "Whole Flower",
-  "test_date": "2026-06-14T00:00:00Z",
+  "test_date": "2026-10-14T00:00:00Z",
   "overall_pass": true,
   "cannabinoids": [
     {
@@ -62,7 +62,7 @@
       "status": "Pass"
     },
     {
-      "name": "Foreign Materials",
+      "name": "Foreign Matter",
       "status": "Pass"
     },
     {

@@ -1,8 +1,8 @@
 {
   "laboratory": {
-    "name": "Method Testing Labs",
-    "address": "2720 Broadway Center Blvd, Brand, FL 33510",
-    "phone": "863-608-7800",
+    "name": "Method Testing Laboratories",
+    "address": "2720 Broadway Center Blvd, Brandon, FL 33510",
+    "phone": "",
     "certification": "CMTL-2023-00012"
   },
   "sample_name": "Savvy Vape - 1g - Blu Rze Hze",
@@ -34,7 +34,7 @@
       "unit": "%"
     },
     {
-      "name": "E-Caryophylenne",
+      "name": "E-Caryophyllenne",
       "value": 1.160,
       "unit": "%"
     },
@@ -62,7 +62,7 @@
       "status": "Pass"
     },
     {
-      "name": "Foreign Materials",
+      "name": "Foreign Matter",
       "status": "Pass"
     },
     {

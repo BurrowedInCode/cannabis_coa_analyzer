@@ -23,7 +23,7 @@
     },
     {
       "name": "Total Cannabinoids",
-      "value": 219,
+      "value": 0.219,
       "unit": "%"
     }
   ],
@@ -46,7 +46,7 @@
       "status": "Pass"
     },
     {
-      "name": "Foreign Materials",
+      "name": "Foreign Matter",
       "status": "Pass"
     },
     {
