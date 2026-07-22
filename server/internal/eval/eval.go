@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,125 +16,124 @@ type Miss struct {
 	Got      string
 }
 
-// Score grades one extraction against its hand-written answer key (expected).
-// It returns how many fields matched (correct) out of how many were checked
-// (total), plus a Miss for each field that didn't match so you can see what to fix.
-func Score(expected, actual *coa.Analysis) (correct, total int, missed []Miss) {
-	// --- scalar fields: one tick each ---
+// Function to compare LLM output against JSON golden data
+func Score(expected, actual *coa.Analysis) (correct int, total int, missed []Miss) {
 	if norm(expected.Laboratory.Name) == norm(actual.Laboratory.Name) {
 		correct++
 	} else {
-		missed = append(missed, Miss{"laboratory.name", expected.Laboratory.Name, actual.Laboratory.Name})
+		missed = append(missed, Miss{Field: "laboratory.name", Expected: expected.Laboratory.Name, Got: actual.Laboratory.Name})
 	}
 	total++
 
 	if norm(expected.Laboratory.Address) == norm(actual.Laboratory.Address) {
 		correct++
 	} else {
-		missed = append(missed, Miss{"laboratory.address", expected.Laboratory.Address, actual.Laboratory.Address})
+		missed = append(missed, Miss{Field: "laboratory.address", Expected: expected.Laboratory.Address, Got: actual.Laboratory.Address})
 	}
 	total++
 
 	if norm(expected.Laboratory.Phone) == norm(actual.Laboratory.Phone) {
 		correct++
 	} else {
-		missed = append(missed, Miss{"laboratory.phone", expected.Laboratory.Phone, actual.Laboratory.Phone})
+		missed = append(missed, Miss{Field: "laboratory.phone", Expected: expected.Laboratory.Phone, Got: actual.Laboratory.Phone})
 	}
 	total++
 
 	if norm(expected.Laboratory.Certification) == norm(actual.Laboratory.Certification) {
 		correct++
 	} else {
-		missed = append(missed, Miss{"laboratory.certification", expected.Laboratory.Certification, actual.Laboratory.Certification})
+		missed = append(missed, Miss{Field: "laboratory.certification", Expected: expected.Laboratory.Certification, Got: actual.Laboratory.Certification})
 	}
 	total++
 
 	if norm(expected.SampleName) == norm(actual.SampleName) {
 		correct++
 	} else {
-		missed = append(missed, Miss{"sample_name", expected.SampleName, actual.SampleName})
+		missed = append(missed, Miss{Field: "sample_name", Expected: expected.SampleName, Got: actual.SampleName})
 	}
 	total++
 
 	if norm(expected.SeedToSaleNumber) == norm(actual.SeedToSaleNumber) {
 		correct++
 	} else {
-		missed = append(missed, Miss{"seed_to_sale_number", expected.SeedToSaleNumber, actual.SeedToSaleNumber})
+		missed = append(missed, Miss{Field: "seed_to_sale_number", Expected: expected.SeedToSaleNumber, Got: actual.SeedToSaleNumber})
 	}
 	total++
 
 	if norm(expected.SampleMatrix) == norm(actual.SampleMatrix) {
 		correct++
 	} else {
-		missed = append(missed, Miss{"sample_matrix", expected.SampleMatrix, actual.SampleMatrix})
+		missed = append(missed, Miss{Field: "sample_matrix", Expected: expected.SampleMatrix, Got: actual.SampleMatrix})
 	}
 	total++
 
-	if sameDate(expected.TestDate, actual.TestDate) {
+	expectedTestDate := dateToString(expected.TestDate)
+	actualTestDate := dateToString(actual.TestDate)
+
+	if expectedTestDate == actualTestDate {
 		correct++
 	} else {
-		missed = append(missed, Miss{"test_date", dateStr(expected.TestDate), dateStr(actual.TestDate)})
+		missed = append(missed, Miss{Field: "test_date", Expected: expectedTestDate, Got: actualTestDate})
 	}
 	total++
 
 	if expected.OverallPass == actual.OverallPass {
 		correct++
 	} else {
-		missed = append(missed, Miss{"overall_pass", boolStr(expected.OverallPass), boolStr(actual.OverallPass)})
+		missed = append(missed, Miss{Field: "overall_pass", Expected: strconv.FormatBool(expected.OverallPass), Got: strconv.FormatBool(actual.OverallPass)})
 	}
 	total++
 
-	// --- list fields: search for each expected entry ---
 	for _, want := range expected.Cannabinoids {
-		gotValue := 0.0
-		nameFound := false
+		var gotValue float64
+		var found bool
 		for _, got := range actual.Cannabinoids {
 			if norm(want.Name) == norm(got.Name) {
 				gotValue = got.Value
-				nameFound = true
+				found = true
 				break
 			}
 		}
-		if nameFound && floatEqual(want.Value, gotValue) {
+		if found && floatEqual(want.Value, gotValue) {
 			correct++
 		} else {
-			missed = append(missed, Miss{"cannabinoid: " + want.Name, numStr(want.Value), gotNum(gotValue, nameFound)})
+			missed = append(missed, Miss{Field: "Cannabinoid: " + want.Name, Expected: floatStr(want.Value), Got: gotNum(gotValue, found)})
 		}
 		total++
 	}
 
 	for _, want := range expected.Terpenes {
-		gotValue := 0.0
-		nameFound := false
+		var gotValue float64
+		var found bool
 		for _, got := range actual.Terpenes {
 			if norm(want.Name) == norm(got.Name) {
 				gotValue = got.Value
-				nameFound = true
+				found = true
 				break
 			}
 		}
-		if nameFound && floatEqual(want.Value, gotValue) {
+		if found && floatEqual(want.Value, gotValue) {
 			correct++
 		} else {
-			missed = append(missed, Miss{"terpene: " + want.Name, numStr(want.Value), gotNum(gotValue, nameFound)})
+			missed = append(missed, Miss{Field: "Terpene: " + want.Name, Expected: floatStr(want.Value), Got: gotNum(gotValue, found)})
 		}
 		total++
 	}
 
 	for _, want := range expected.Summary {
-		gotStatus := ""
-		nameFound := false
+		var gotValue string
+		var found bool
 		for _, got := range actual.Summary {
 			if norm(want.Name) == norm(got.Name) {
-				gotStatus = got.Status
-				nameFound = true
+				gotValue = got.Status
+				found = true
 				break
 			}
 		}
-		if nameFound && norm(want.Status) == norm(gotStatus) {
+		if found && norm(want.Status) == norm(gotValue) {
 			correct++
 		} else {
-			missed = append(missed, Miss{"summary: " + want.Name, want.Status, gotStr(gotStatus, nameFound)})
+			missed = append(missed, Miss{Field: "Summary: " + want.Name, Expected: want.Status, Got: gotStr(gotValue, found)})
 		}
 		total++
 	}
@@ -141,47 +141,33 @@ func Score(expected, actual *coa.Analysis) (correct, total int, missed []Miss) {
 	return correct, total, missed
 }
 
-// norm makes string comparison forgiving: "Green Labs" and "green labs " match.
 func norm(s string) string {
 	return strings.TrimSpace(strings.ToLower(s))
 }
 
-// sameDate compares by calendar day, ignoring time-of-day and timezone.
-func sameDate(a, b time.Time) bool {
-	return dateStr(a) == dateStr(b)
+// Makes comparing dates easier
+func dateToString(d time.Time) string {
+	return d.Format("2006-01-02")
 }
 
-func dateStr(t time.Time) string {
-	return t.Format("2006-01-02")
+func floatEqual(want, got float64) bool {
+	return math.Abs(want-got) <= 0.02*math.Abs(want)+0.01
 }
 
-func boolStr(b bool) string {
-	return fmt.Sprintf("%v", b)
-}
-
-func numStr(f float64) string {
+func floatStr(f float64) string {
 	return fmt.Sprintf("%.4g", f)
 }
 
-// gotNum / gotStr distinguish "the model gave a wrong value" from "the model
-// never reported this entry at all".
-func gotNum(f float64, nameFound bool) string {
-	if !nameFound {
+func gotNum(got float64, found bool) string {
+	if !found {
 		return "(not found)"
 	}
-	return numStr(f)
+	return floatStr(got)
 }
 
-func gotStr(s string, nameFound bool) string {
-	if !nameFound {
+func gotStr(got string, found bool) string {
+	if !found {
 		return "(not found)"
 	}
-	return s
-}
-
-// floatEqual treats two measured numbers as equal within a small tolerance, so
-// rounding (25.34 vs 25.3) doesn't count as wrong. Loosen if the model is right
-// but flagged.
-func floatEqual(want, got float64) bool {
-	return math.Abs(want-got) <= 0.02*math.Abs(want)+0.01
+	return got
 }
