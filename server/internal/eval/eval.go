@@ -97,7 +97,7 @@ func Score(expected, actual *coa.Analysis) (correct int, total int, missed []Mis
 		if found && floatEqual(want.Value, gotValue) {
 			correct++
 		} else {
-			missed = append(missed, Miss{Field: "Cannabinoid: " + want.Name, Expected: floatStr(want.Value), Got: gotNum(gotValue, found)})
+			missed = append(missed, Miss{Field: "cannabinoid: " + want.Name, Expected: floatStr(want.Value), Got: gotNum(gotValue, found)})
 		}
 		total++
 	}
@@ -115,7 +115,7 @@ func Score(expected, actual *coa.Analysis) (correct int, total int, missed []Mis
 		if found && floatEqual(want.Value, gotValue) {
 			correct++
 		} else {
-			missed = append(missed, Miss{Field: "Terpene: " + want.Name, Expected: floatStr(want.Value), Got: gotNum(gotValue, found)})
+			missed = append(missed, Miss{Field: "terpene: " + want.Name, Expected: floatStr(want.Value), Got: gotNum(gotValue, found)})
 		}
 		total++
 	}
@@ -133,7 +133,7 @@ func Score(expected, actual *coa.Analysis) (correct int, total int, missed []Mis
 		if found && norm(want.Status) == norm(gotValue) {
 			correct++
 		} else {
-			missed = append(missed, Miss{Field: "Summary: " + want.Name, Expected: want.Status, Got: gotStr(gotValue, found)})
+			missed = append(missed, Miss{Field: "summary: " + want.Name, Expected: want.Status, Got: gotStr(gotValue, found)})
 		}
 		total++
 	}
@@ -150,6 +150,7 @@ func dateToString(d time.Time) string {
 	return d.Format("2006-01-02")
 }
 
+// In order to account for rounding from the LLM output
 func floatEqual(want, got float64) bool {
 	return math.Abs(want-got) <= 0.02*math.Abs(want)+0.01
 }
