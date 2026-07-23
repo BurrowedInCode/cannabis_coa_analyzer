@@ -111,7 +111,7 @@ func TestScore(t *testing.T) {
 			wantTotal:   16,
 		},
 		{
-			name:        "all wrong",
+			name:        "all-wrong",
 			expected:    fixture(),
 			actual:      wrongFixture(),
 			wantCorrect: 0,
