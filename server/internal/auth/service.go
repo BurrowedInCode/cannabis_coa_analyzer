@@ -15,7 +15,7 @@ type TokenConfig struct {
 	Duration time.Duration
 }
 
-type Claims struct {
+type UserClaims struct {
 	jwt.RegisteredClaims
 }
 
@@ -35,7 +35,7 @@ func VerifyPassword(hashedPass string, inputPass string) error {
 }
 
 func GenerateToken(cfg TokenConfig) (string, error) {
-	claims := Claims{
+	claims := UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   cfg.Username,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.Duration)),
@@ -53,8 +53,8 @@ func GenerateToken(cfg TokenConfig) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateToken(tokenString string, secret string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (any, error) {
+func ValidateToken(tokenString string, secret string) (*UserClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(t *jwt.Token) (any, error) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, errors.New("unexpected signing method")
 		}
@@ -64,10 +64,5 @@ func ValidateToken(tokenString string, secret string) (*Claims, error) {
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
 
-	claims, ok := token.Claims.(*Claims)
-	if !ok {
-		return nil, errors.New("invalid token claims")
-	}
-
-	return claims, nil
+	return token.Claims.(*UserClaims), nil
 }

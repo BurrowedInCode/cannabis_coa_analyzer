@@ -20,6 +20,13 @@ func main() {
 	godotenv.Load()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+
+	if jwtSecret == "" {
+		logger.Error("JWT_SECRET is not set")
+		os.Exit(1)
+	}
+
 	db, err := db.ConnectToDB(os.Getenv("DATABASE_URL"))
 	if err != nil {
 		logger.Error("failed to connect to database", "error", err)
@@ -43,13 +50,18 @@ func main() {
 
 	loginStore := auth.NewStore(db)
 
+	protected := http.NewServeMux()
+	protected.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, coaSvc, coaStore))
+	protected.Handle("GET /coa/analyses", coa.GetAllCOAAnalysesHandler(logger, coaStore))
+	protected.Handle("GET /coa/analyses/{id}", coa.GetCOAAnalysisHandler(logger, coaStore))
+	protected.Handle("PUT /coa/analyses/{id}", coa.UpdateCOAAnalysisHandler(logger, coaStore))
+
 	mux := http.NewServeMux()
-	mux.Handle("POST /coa/analyze", coa.AnalyzeCOAHandler(logger, coaSvc, coaStore))
-	mux.Handle("GET /coa/analyses", coa.GetAllCOAAnalysesHandler(logger, coaStore))
-	mux.Handle("GET /coa/analyses/{id}", coa.GetCOAAnalysisHandler(logger, coaStore))
-	mux.Handle("PUT /coa/analyses/{id}", coa.UpdateCOAAnalysisHandler(logger, coaStore))
+	mux.Handle("/coa/", middleware.AuthMiddleware(jwtSecret, protected))
 	mux.Handle("POST /user/register", auth.RegisterUserHandler(logger, loginStore))
-	mux.Handle("POST /user/login", auth.LoginUserHandler(logger, loginStore, os.Getenv("JWT_SECRET")))
+	mux.Handle("POST /user/login", auth.LoginUserHandler(logger, loginStore, jwtSecret))
+	mux.HandleFunc("POST /user/logout", auth.LogOutHandler)
+	mux.Handle("GET /user/me", middleware.AuthMiddleware(jwtSecret, auth.Me()))
 	server := &http.Server{
 		Handler:      middleware.Cors(mux),
 		Addr:         ":8080",
