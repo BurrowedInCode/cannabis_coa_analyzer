@@ -42,5 +42,9 @@ export interface AnalysisSummary {
   overall_pass: boolean
 }
 
+export interface Me {
+  username: string
+}
+
 
 

@@ -9,75 +9,82 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UploadRouteImport } from './routes/upload'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AnalysesIndexRouteImport } from './routes/analyses.index'
-import { Route as AnalysesAnalysisIDRouteImport } from './routes/analyses.$analysisID'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated.upload'
+import { Route as AuthenticatedAnalysesIndexRouteImport } from './routes/_authenticated.analyses.index'
+import { Route as AuthenticatedAnalysesAnalysisIDRouteImport } from './routes/_authenticated.analyses.$analysisID'
 
-const UploadRoute = UploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnalysesIndexRoute = AnalysesIndexRouteImport.update({
-  id: '/analyses/',
-  path: '/analyses/',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AnalysesAnalysisIDRoute = AnalysesAnalysisIDRouteImport.update({
-  id: '/analyses/$analysisID',
-  path: '/analyses/$analysisID',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAnalysesIndexRoute =
+  AuthenticatedAnalysesIndexRouteImport.update({
+    id: '/analyses/',
+    path: '/analyses/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAnalysesAnalysisIDRoute =
+  AuthenticatedAnalysesAnalysisIDRouteImport.update({
+    id: '/analyses/$analysisID',
+    path: '/analyses/$analysisID',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
-  '/upload': typeof UploadRoute
-  '/analyses/$analysisID': typeof AnalysesAnalysisIDRoute
-  '/analyses/': typeof AnalysesIndexRoute
+  '/upload': typeof AuthenticatedUploadRoute
+  '/analyses/$analysisID': typeof AuthenticatedAnalysesAnalysisIDRoute
+  '/analyses/': typeof AuthenticatedAnalysesIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
-  '/upload': typeof UploadRoute
-  '/analyses/$analysisID': typeof AnalysesAnalysisIDRoute
-  '/analyses': typeof AnalysesIndexRoute
+  '/upload': typeof AuthenticatedUploadRoute
+  '/analyses/$analysisID': typeof AuthenticatedAnalysesAnalysisIDRoute
+  '/analyses': typeof AuthenticatedAnalysesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
-  '/upload': typeof UploadRoute
-  '/analyses/$analysisID': typeof AnalysesAnalysisIDRoute
-  '/analyses/': typeof AnalysesIndexRoute
+  '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/_authenticated/analyses/$analysisID': typeof AuthenticatedAnalysesAnalysisIDRoute
+  '/_authenticated/analyses/': typeof AuthenticatedAnalysesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/upload' | '/analyses/$analysisID' | '/analyses/'
+  fullPaths: '/' | '/login' | '/upload' | '/analyses/$analysisID' | '/analyses/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/upload' | '/analyses/$analysisID' | '/analyses'
-  id: '__root__' | '/login' | '/upload' | '/analyses/$analysisID' | '/analyses/'
+  to: '/' | '/login' | '/upload' | '/analyses/$analysisID' | '/analyses'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/upload'
+    | '/_authenticated/analyses/$analysisID'
+    | '/_authenticated/analyses/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
-  UploadRoute: typeof UploadRoute
-  AnalysesAnalysisIDRoute: typeof AnalysesAnalysisIDRoute
-  AnalysesIndexRoute: typeof AnalysesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/upload': {
-      id: '/upload'
-      path: '/upload'
-      fullPath: '/upload'
-      preLoaderRoute: typeof UploadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -85,28 +92,56 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/analyses/': {
-      id: '/analyses/'
-      path: '/analyses'
-      fullPath: '/analyses/'
-      preLoaderRoute: typeof AnalysesIndexRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/analyses/$analysisID': {
-      id: '/analyses/$analysisID'
+    '/_authenticated/upload': {
+      id: '/_authenticated/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof AuthenticatedUploadRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/analyses/': {
+      id: '/_authenticated/analyses/'
+      path: '/analyses'
+      fullPath: '/analyses/'
+      preLoaderRoute: typeof AuthenticatedAnalysesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/analyses/$analysisID': {
+      id: '/_authenticated/analyses/$analysisID'
       path: '/analyses/$analysisID'
       fullPath: '/analyses/$analysisID'
-      preLoaderRoute: typeof AnalysesAnalysisIDRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedAnalysesAnalysisIDRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
+  AuthenticatedAnalysesAnalysisIDRoute: typeof AuthenticatedAnalysesAnalysisIDRoute
+  AuthenticatedAnalysesIndexRoute: typeof AuthenticatedAnalysesIndexRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedUploadRoute: AuthenticatedUploadRoute,
+  AuthenticatedAnalysesAnalysisIDRoute: AuthenticatedAnalysesAnalysisIDRoute,
+  AuthenticatedAnalysesIndexRoute: AuthenticatedAnalysesIndexRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
-  UploadRoute: UploadRoute,
-  AnalysesAnalysisIDRoute: AnalysesAnalysisIDRoute,
-  AnalysesIndexRoute: AnalysesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

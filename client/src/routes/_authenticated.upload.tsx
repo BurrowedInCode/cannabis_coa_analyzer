@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
-export const Route = createFileRoute('/upload')({
+export const Route = createFileRoute('/_authenticated/upload')({
   component: Upload,
 })
 

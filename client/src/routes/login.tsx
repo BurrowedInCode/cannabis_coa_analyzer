@@ -5,21 +5,25 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { UserLogin } from '@/api/auth';
+import { login } from '@/api/auth';
 
 export const Route = createFileRoute('/login')({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
+  }),
   component: Login,
 })
 
 function Login() {
   const navigate = useNavigate()
+  const { redirect } = Route.useSearch()
 
   const [username, setUsername] = useState<string>('')
   const [password, setPassword] = useState<string>('')
 
   const mutation = useMutation({
-    mutationFn: () => UserLogin(username, password),
-    onSuccess: () => { navigate({ to: '/upload' }) },
+    mutationFn: () => login(username, password),
+    onSuccess: () => { navigate({ to: (redirect ?? '/upload') as '/upload' }) },
     onError: () => { console.log("error logging in") }
   })
 
