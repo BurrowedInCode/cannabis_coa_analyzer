@@ -1,4 +1,5 @@
 import { getMe } from '@/api/auth'
+import { NavBar } from '@/components/NavBar'
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authenticated')({
@@ -13,5 +14,10 @@ export const Route = createFileRoute('/_authenticated')({
 })
 
 function RouteComponent() {
-  return (<Outlet />)
+  return (
+    <>
+      <NavBar />
+      <Outlet />
+    </>
+  )
 }
