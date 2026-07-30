@@ -5,38 +5,33 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { login } from '@/api/auth';
+import { register } from '@/api/auth';
 
-export const Route = createFileRoute('/login')({
-  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
-    redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
-  }),
-  component: Login,
+export const Route = createFileRoute('/register')({
+  component: Register,
 })
 
-function Login() {
+function Register() {
   const navigate = useNavigate()
-  const { redirect } = Route.useSearch()
-
-  const [username, setUsername] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
+  const [username, setUsername] = useState<string>("")
+  const [password, setPassword] = useState<string>("")
 
   const mutation = useMutation({
-    mutationFn: () => login(username, password),
-    onSuccess: () => { navigate({ to: (redirect ?? '/upload') as '/upload' }) },
-    onError: () => { console.log("error logging in") }
+    mutationFn: () => register(username, password),
+    onSuccess: () => { navigate({ to: "/login" }) },
+    onError: () => { console.log("error registering") }
   })
-
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     mutation.mutate()
   }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-sm px-4">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold">Cannabis CoA Reader</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your account</p>
+          <p className="text-sm text-muted-foreground mt-1">Register</p>
         </div>
         <form onSubmit={handleSubmit}>
           <Card>
@@ -52,12 +47,12 @@ function Login() {
                 </Field>
               </FieldGroup>
               <Button type="submit" className="w-full mt-4" disabled={mutation.isPending}>
-                {mutation.isPending ? "loading" : "Sign in"}
+                {mutation.isPending ? "loading" : "Register"}
               </Button>
               <p className="text-sm text-muted-foreground text-center mt-4">
-                Don't have an account?{" "}
-                <Link to="/register" className="text-primary underline underline-offset-4">
-                  Sign up
+                Already have an account?{" "}
+                <Link to="/login" className="text-primary underline underline-offset-4">
+                  Sign in
                 </Link>
               </p>
             </CardContent>

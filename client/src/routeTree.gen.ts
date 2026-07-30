@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated.upload'
 import { Route as AuthenticatedAnalysesIndexRouteImport } from './routes/_authenticated.analyses.index'
 import { Route as AuthenticatedAnalysesAnalysisIDRouteImport } from './routes/_authenticated.analyses.$analysisID'
 
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -45,6 +51,7 @@ const AuthenticatedAnalysesAnalysisIDRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/analyses/$analysisID': typeof AuthenticatedAnalysesAnalysisIDRoute
   '/analyses/': typeof AuthenticatedAnalysesIndexRoute
@@ -52,6 +59,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/upload': typeof AuthenticatedUploadRoute
   '/analyses/$analysisID': typeof AuthenticatedAnalysesAnalysisIDRoute
   '/analyses': typeof AuthenticatedAnalysesIndexRoute
@@ -60,19 +68,33 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
   '/_authenticated/analyses/$analysisID': typeof AuthenticatedAnalysesAnalysisIDRoute
   '/_authenticated/analyses/': typeof AuthenticatedAnalysesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/upload' | '/analyses/$analysisID' | '/analyses/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/upload'
+    | '/analyses/$analysisID'
+    | '/analyses/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/upload' | '/analyses/$analysisID' | '/analyses'
+  to:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/upload'
+    | '/analyses/$analysisID'
+    | '/analyses'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
+    | '/register'
     | '/_authenticated/upload'
     | '/_authenticated/analyses/$analysisID'
     | '/_authenticated/analyses/'
@@ -81,10 +103,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -142,6 +172,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

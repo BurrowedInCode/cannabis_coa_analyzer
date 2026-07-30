@@ -38,3 +38,14 @@ export async function logout(): Promise<void> {
     throw new Error(message)
   }
 }
+
+export async function register(username: string, password: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/user/register`, {
+    method: "POST",
+    body: JSON.stringify({ username: username, password: password })
+  })
+  if (!res.ok) {
+    const message = await res.text()
+    throw new Error(message)
+  }
+}
