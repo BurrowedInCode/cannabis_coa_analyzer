@@ -1,12 +1,13 @@
-import { logout } from "@/api/auth";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { logout, getMe } from "@/api/auth";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from '@/components/ui/button'
-
 
 export function NavBar() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const { data } = useQuery({ queryKey: ["me"], queryFn: getMe })
+
 
   const mutation = useMutation({
     mutationFn: logout,
@@ -31,6 +32,14 @@ export function NavBar() {
           <Link to="/analyses" className={linkClass} activeProps={{ className: activeClass }}>
             Analyses
           </Link>
+          {data?.username && (
+            <div className="flex items-center gap-2 border-l pl-6">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium uppercase text-muted-foreground">
+                {data.username.charAt(0)}
+              </span>
+              <span className="text-sm font-medium">{data.username}</span>
+            </div>
+          )}
           <Button
             variant="outline"
             size="sm"
