@@ -1,0 +1,18 @@
+# dependencies — installed fresh inside the image
+**/node_modules
+
+# build artifacts — produced inside the image
+client/dist
+server/web/dist
+server/server
+
+# secrets & local env — provided via fly secrets, never baked in
+**/.env
+**/.env.*
+!client/.env.production
+
+# vcs & tooling
+.git
+.gitignore
+**/*.log
+**/.DS_Store
