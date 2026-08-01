@@ -1,7 +1,7 @@
 FROM node:22-alpine AS frontend
 WORKDIR /app/client
 RUN corepack enable
-COPY client/package.json client/pnpm-lock.yaml ./
+COPY client/package.json client/pnpm-lock.yaml client/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY client/ ./
 RUN pnpm build
