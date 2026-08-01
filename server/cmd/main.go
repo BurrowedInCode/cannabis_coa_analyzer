@@ -65,11 +65,12 @@ func main() {
 	mux.Handle("GET /user/me", middleware.AuthMiddleware(jwtSecret, auth.Me()))
 	mux.Handle("/", web.Handler())
 	server := &http.Server{
-		Handler:      middleware.Cors(mux),
-		Addr:         ":8080",
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Handler:           middleware.Cors(mux),
+		Addr:              ":8080",
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       5 * time.Minute,
+		WriteTimeout:      5 * time.Minute,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
