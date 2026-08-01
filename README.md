@@ -72,17 +72,29 @@ Same-origin serving means the `Secure` / `SameSite=Strict` auth cookie works unc
 - Go 1.26+
 - Node 22+ and pnpm
 - PostgreSQL (or Docker)
+- [golang-migrate](https://github.com/golang-migrate/migrate) CLI (for running migrations)
 - An Anthropic API key
 
 ### Local development
 
-1. **Database** — start Postgres (via Docker):
+1. **Clone the repo:**
+
+   ```bash
+   git clone git@github.com:BurrowedInCode/cannabis_coa_analyzer.git
+   cd cannabis_coa_analyzer
+   ```
+
+2. **Start Postgres** (via Docker):
 
    ```bash
    docker compose up -d postgres
    ```
 
-2. **Server env** — copy `server/.env.example` to `server/.env` and fill in:
+3. **Configure the server** — copy the example env and fill in the values:
+
+   ```bash
+   cp server/.env.example server/.env
+   ```
 
    ```
    DATABASE_URL=postgres://admin:password@localhost:5432/cannabis_coa_analyzer?sslmode=disable
@@ -90,23 +102,38 @@ Same-origin serving means the `Secure` / `SameSite=Strict` auth cookie works unc
    ANTHROPIC_API_KEY=<your key>
    ```
 
-3. **Migrations** — apply with [golang-migrate](https://github.com/golang-migrate/migrate):
+   (The `docker-compose.yml` Postgres defaults are `admin` / `password` / db `cannabis_coa_analyzer`.)
+
+4. **Apply migrations** with [golang-migrate](https://github.com/golang-migrate/migrate):
 
    ```bash
-   migrate -path server/db/migrations -database "$DATABASE_URL" up
+   migrate -path server/db/migrations \
+     -database "postgres://admin:password@localhost:5432/cannabis_coa_analyzer?sslmode=disable" up
    ```
 
-4. **Run the server** (serves API + embedded SPA on `:8080`):
+5. **Run the server** — installs Go deps on first build, then serves the API + embedded SPA on `:8080`:
 
    ```bash
-   cd server && go run ./cmd/main.go
+   cd server
+   go mod download
+   go run ./cmd/main.go
    ```
 
-5. **Run the client** (Vite dev server with HMR, proxies to the API):
+6. **Configure the client** — the SPA reads its API base URL from `VITE_API_URL`. This file is gitignored, so create it for local development pointing at the server:
 
    ```bash
-   cd client && pnpm install && pnpm dev
+   echo 'VITE_API_URL=http://localhost:8080' > client/.env
    ```
+
+7. **Run the client** — in a second terminal, start the Vite dev server (HMR):
+
+   ```bash
+   cd client
+   pnpm install
+   pnpm dev
+   ```
+
+   The app is then available at the URL Vite prints (default `http://localhost:5173`).
 
 ## Deployment
 
