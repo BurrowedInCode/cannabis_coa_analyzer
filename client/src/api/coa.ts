@@ -15,9 +15,14 @@ export async function analyzeCOA(files: File[]): Promise<void> {
     body: formData,
   })
 
+  if (res.status === 207) {
+    const result = await res.json() as { succeeded: string[]; failed: string[] }
+    throw new Error(`Processed ${result.succeeded.length} file(s); failed: ${result.failed.join(", ")}`)
+  }
+
   if (!res.ok) {
     const message = await res.text()
-    throw new Error(message)
+    throw new Error(message.trim() || "Failed to analyze COA")
   }
 
 }

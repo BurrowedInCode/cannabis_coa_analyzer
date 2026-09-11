@@ -17,7 +17,6 @@ function Upload() {
   const mutation = useMutation({
     mutationFn: () => analyzeCOA(files),
     onSuccess: () => navigate({ to: "/analyses" }),
-    onError: () => console.log("error sending"),
   })
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -43,7 +42,7 @@ function Upload() {
               {mutation.isPending ? "Analyzing..." : "Analyze"}
             </Button>
             {mutation.isError && (
-              <p className="text-sm text-center text-destructive">Failed to analyze COA. Please try again.</p>
+              <p className="text-sm text-center text-destructive">{mutation.error.message}</p>
             )}
           </form>
         </CardContent>

@@ -12,6 +12,7 @@ import (
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/db"
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/auth"
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/coa"
+	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/llm"
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/middleware"
 	"github.com/BurrowedInCode/cannabis_coa_analyzer/web"
 	"github.com/joho/godotenv"
@@ -25,6 +26,15 @@ func main() {
 
 	if jwtSecret == "" {
 		logger.Error("JWT_SECRET is not set")
+		os.Exit(1)
+	}
+
+	llmClient, err := llm.NewOpenRouterClient(llm.OpenRouterConfig{
+		APIKey: os.Getenv("OPENROUTER_API_KEY"),
+		Model:  os.Getenv("LLM_MODEL"),
+	})
+	if err != nil {
+		logger.Error("failed to configure OpenRouter client", "error", err)
 		os.Exit(1)
 	}
 
@@ -43,7 +53,7 @@ func main() {
 	)
 
 	coaStore := coa.NewStore(db)
-	coaSvc, err := coa.NewService("prompts/extract_coa_v3.md")
+	coaSvc, err := coa.NewService(llmClient, "prompts/extract_coa_v5.md", "schemas/coa_analysis_v2.json")
 	if err != nil {
 		logger.Error("failed to load COA prompt", "error", err)
 		os.Exit(1)

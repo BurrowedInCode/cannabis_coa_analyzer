@@ -169,3 +169,9 @@ func TestScoreMissingCannabinoidReportsNotFound(t *testing.T) {
 		t.Error("no miss recorded for the dropped cannabinoid")
 	}
 }
+
+func TestFieldCount(t *testing.T) {
+	if got := FieldCount(fixture()); got != 16 {
+		t.Errorf("FieldCount() = %d, want 16", got)
+	}
+}

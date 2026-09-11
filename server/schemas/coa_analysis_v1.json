@@ -1,0 +1,140 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "laboratory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "address": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "certification": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "address",
+        "phone",
+        "certification"
+      ]
+    },
+    "sample_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "seed_to_sale_number": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sample_matrix": {
+      "type": "string",
+      "minLength": 1
+    },
+    "test_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "overall_pass": {
+      "type": "boolean"
+    },
+    "cannabinoids": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["%"]
+          }
+        },
+        "required": [
+          "name",
+          "value",
+          "unit"
+        ]
+      }
+    },
+    "terpenes": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0
+          },
+          "unit": {
+            "type": "string",
+            "enum": ["%"]
+          }
+        },
+        "required": [
+          "name",
+          "value",
+          "unit"
+        ]
+      }
+    },
+    "summary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "Pass",
+              "Fail",
+              "Not Tested",
+              "Not Applicable"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "status"
+        ]
+      }
+    }
+  },
+  "required": [
+    "laboratory",
+    "sample_name",
+    "seed_to_sale_number",
+    "sample_matrix",
+    "test_date",
+    "overall_pass",
+    "cannabinoids",
+    "terpenes",
+    "summary"
+  ]
+}

@@ -19,5 +19,5 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates
 COPY --from=backend /server ./server
 COPY server/prompts ./prompts
+COPY server/schemas ./schemas
 CMD ["./server"]
-

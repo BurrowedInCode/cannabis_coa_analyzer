@@ -1,33 +1,63 @@
 package coa
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
-	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/BurrowedInCode/cannabis_coa_analyzer/internal/llm"
+	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 )
 
+const pdfMIMEType = "application/pdf"
+
 type Service struct {
-	client *anthropic.Client
-	prompt string
+	client    llm.Client
+	schema    llm.JSONSchema
+	validator *jsonschema.Schema
+	prompt    string
 }
 
-func NewService(promptPath string) (*Service, error) {
+func NewService(client llm.Client, promptPath string, schemaPath string) (*Service, error) {
 	prompt, err := os.ReadFile(promptPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load prompt: %w", err)
 	}
-	client := anthropic.NewClient()
-	return &Service{client: &client, prompt: string(prompt)}, nil
-}
 
-type UploadedFile struct {
-	ID       string
-	Filename string
+	var schemaDefinition map[string]any
+	schemaData, err := os.ReadFile(schemaPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load schema: %w", err)
+	}
+
+	if err := json.Unmarshal(schemaData, &schemaDefinition); err != nil {
+		return nil, fmt.Errorf("failed to parse schema: %w", err)
+	}
+
+	compiler := jsonschema.NewCompiler()
+	compiler.AssertFormat()
+	if err := compiler.AddResource("coa_analysis.json", schemaDefinition); err != nil {
+		return nil, fmt.Errorf("failed to load schema validator: %w", err)
+	}
+	validator, err := compiler.Compile("coa_analysis.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile schema validator: %w", err)
+	}
+
+	return &Service{
+		client: client,
+		schema: llm.JSONSchema{
+			Name:       "coa_analysis",
+			Definition: schemaDefinition,
+		},
+		validator: validator,
+		prompt:    string(prompt),
+	}, nil
 }
 
 var summaryNameMap = map[string]string{
@@ -44,6 +74,17 @@ var summaryDropMap = map[string]bool{
 	"tcl":                    true,
 }
 
+var requiredSummaryNames = map[string]bool{
+	"Microbials":        true,
+	"Pesticides":        true,
+	"Heavy Metals":      true,
+	"Mycotoxins":        true,
+	"Foreign Matter":    true,
+	"Moisture Content":  true,
+	"Residual Solvents": true,
+	"Water Activity":    true,
+}
+
 var cannabinoidNameMap = map[string]string{
 	"total active thc": "Total THC",
 	"total active cbd": "Total CBD",
@@ -56,7 +97,6 @@ var cannabinoidDropMap = map[string]bool{
 
 func normalizeJSON(a *Analysis) {
 	normalized := a.Summary[:0]
-	seen := map[string]bool{}
 
 	for _, t := range a.Summary {
 		key := strings.ToLower(t.Name)
@@ -67,20 +107,18 @@ func normalizeJSON(a *Analysis) {
 			t.Name = cannonical
 		}
 
-		if !seen[t.Name] {
-			seen[t.Name] = true
-			normalized = append(normalized, t)
-		}
+		normalized = append(normalized, t)
 	}
 
 	a.Summary = normalized
 
 	cannabinoids := a.Cannabinoids[:0]
 	for _, c := range a.Cannabinoids {
-		if cannabinoidDropMap[strings.ToLower(c.Name)] {
+		key := strings.ToLower(c.Name)
+		if cannabinoidDropMap[key] {
 			continue
 		}
-		if cannonical, ok := cannabinoidNameMap[strings.ToLower(c.Name)]; ok {
+		if cannonical, ok := cannabinoidNameMap[key]; ok {
 			c.Name = cannonical
 		}
 		cannabinoids = append(cannabinoids, c)
@@ -90,18 +128,23 @@ func normalizeJSON(a *Analysis) {
 
 }
 
-func (s *Service) UploadCOA(ctx context.Context, r io.Reader, filename string, contentType string) (*UploadedFile, error) {
-	meta, err := s.client.Beta.Files.Upload(ctx, anthropic.BetaFileUploadParams{
-		File: anthropic.File(r, filename, contentType),
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to uploaded file: %w", err)
+func validateSummary(summary []TestSummary) error {
+	if len(summary) != len(requiredSummaryNames) {
+		return fmt.Errorf("summary must contain exactly %d categories", len(requiredSummaryNames))
 	}
-	return &UploadedFile{
-		ID:       meta.ID,
-		Filename: filename,
-	}, nil
+
+	seen := make(map[string]bool, len(summary))
+	for _, item := range summary {
+		if !requiredSummaryNames[item.Name] {
+			return fmt.Errorf("unexpected summary category %q", item.Name)
+		}
+		if seen[item.Name] {
+			return fmt.Errorf("duplicate summary category %q", item.Name)
+		}
+		seen[item.Name] = true
+	}
+
+	return nil
 }
 
 func extractJSON(s string) string {
@@ -111,63 +154,64 @@ func extractJSON(s string) string {
 	return strings.TrimSpace(s)
 }
 
-type Usage struct {
-	InputTokens  int64
-	OutputTokens int64
-}
+type Usage = llm.Usage
 
-func (u Usage) CostUSD() float64 {
-	const inputPerMTok = 1.00 // claude-haiku-4-5
-	const outputPerMTok = 5.00
-	return float64(u.InputTokens)/1e6*inputPerMTok + float64(u.OutputTokens)/1e6*outputPerMTok
-}
+func (s *Service) AnalyzeCOA(ctx context.Context, r io.Reader, filename string) (*Analysis, Usage, error) {
+	document, err := io.ReadAll(io.LimitReader(r, maxFileSize+1))
+	if err != nil {
+		return nil, Usage{}, fmt.Errorf("failed to read COA: %w", err)
+	}
 
-func (s *Service) AnalyzeCOA(ctx context.Context, fileID string) (*Analysis, Usage, error) {
-	msg, err := s.client.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
-		Model: anthropic.ModelClaudeHaiku4_5,
+	if len(document) > maxFileSize {
+		return nil, Usage{}, fmt.Errorf(
+			"COA exceeds %d MiB limit",
+			maxFileSize>>20,
+		)
+	}
 
-		MaxTokens:   1024,
-		Temperature: anthropic.Float(0),
-		Betas:       []anthropic.AnthropicBeta{anthropic.AnthropicBetaFilesAPI2025_04_14},
-		Messages: []anthropic.BetaMessageParam{
-			anthropic.NewBetaUserMessage(
-				anthropic.NewBetaTextBlock(s.prompt),
-				anthropic.NewBetaDocumentBlock(anthropic.BetaFileDocumentSourceParam{
-					FileID: fileID,
-				}),
-			),
+	if !bytes.HasPrefix(document, []byte("%PDF-")) {
+		return nil, Usage{}, fmt.Errorf("file is not a valid PDF")
+	}
+
+	if detected := http.DetectContentType(document); detected != pdfMIMEType {
+		return nil, Usage{}, fmt.Errorf("file is not a valid PDF")
+	}
+
+	response, err := s.client.Complete(ctx, llm.Request{
+		Prompt:         s.prompt,
+		ResponseSchema: &s.schema,
+		Document: llm.Document{
+			Filename: filename,
+			MIMEType: pdfMIMEType,
+			Data:     document,
 		},
 	})
+
 	if err != nil {
 		return nil, Usage{}, fmt.Errorf("failed to analyze COA: %w", err)
 	}
 
-	usage := Usage{
-		InputTokens:  msg.Usage.InputTokens,
-		OutputTokens: msg.Usage.OutputTokens,
-	}
-
-	for _, block := range msg.Content {
-		if b, ok := block.AsAny().(anthropic.BetaTextBlock); ok {
-			var analysis Analysis
-			if err := json.Unmarshal([]byte(extractJSON(b.Text)), &analysis); err != nil {
-				return nil, usage, fmt.Errorf("failed to parse COA response: %w", err)
-			}
-			normalizeJSON(&analysis)
-			return &analysis, usage, nil
-		}
-	}
-	return nil, usage, fmt.Errorf("no text response from Claude")
-}
-
-func (s *Service) DeleteCOA(ctx context.Context, fileID string) error {
-	_, err := s.client.Beta.Files.Delete(
-		ctx,
-		fileID,
-		anthropic.BetaFileDeleteParams{},
-	)
+	responseJSON := extractJSON(response.Content)
+	instance, err := jsonschema.UnmarshalJSON(strings.NewReader(responseJSON))
 	if err != nil {
-		return fmt.Errorf("Failed to delete COA: %w", err)
+		return nil, response.Usage, fmt.Errorf("failed to parse COA response: %w", err)
 	}
-	return nil
+	if err := s.validator.Validate(instance); err != nil {
+		return nil, response.Usage, fmt.Errorf("COA response failed schema validation: %w", err)
+	}
+
+	var analysis Analysis
+	decoder := json.NewDecoder(strings.NewReader(responseJSON))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&analysis); err != nil {
+		return nil, response.Usage, fmt.Errorf("failed to parse COA response: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return nil, response.Usage, fmt.Errorf("failed to parse COA response: unexpected trailing data")
+	}
+	normalizeJSON(&analysis)
+	if err := validateSummary(analysis.Summary); err != nil {
+		return nil, response.Usage, fmt.Errorf("COA response failed semantic validation: %w", err)
+	}
+	return &analysis, response.Usage, nil
 }

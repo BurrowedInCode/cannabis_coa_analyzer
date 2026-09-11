@@ -3,6 +3,9 @@ package coa
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
@@ -10,27 +13,41 @@ import (
 	"sync"
 )
 
+const (
+	maxFileSize    = 10 << 20
+	maxFiles       = 5
+	maxRequestSize = 52 << 20
+)
+
 type coaResult struct {
 	filename string
 	err      error
 }
 
-func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *Store, fh *multipart.FileHeader) coaResult {
+type coaAnalyzer interface {
+	AnalyzeCOA(context.Context, io.Reader, string) (*Analysis, Usage, error)
+}
+
+type coaAnalysisStore interface {
+	StoreCOAAnalysis(context.Context, *Analysis, Usage) error
+}
+
+func processCOA(ctx context.Context, logger *slog.Logger, svc coaAnalyzer, store coaAnalysisStore, fh *multipart.FileHeader) coaResult {
+	if fh.Size > maxFileSize {
+		return coaResult{
+			filename: fh.Filename,
+			err:      fmt.Errorf("file exceeds %d MiB limit", maxFileSize>>20),
+		}
+	}
+
 	file, err := fh.Open()
 	if err != nil {
 		return coaResult{filename: fh.Filename, err: err}
 	}
 	defer file.Close()
 
-	uploaded, err := svc.UploadCOA(ctx, file, fh.Filename, fh.Header.Get("Content-Type"))
+	result, usage, err := svc.AnalyzeCOA(ctx, file, fh.Filename)
 	if err != nil {
-		logger.Error("Failed to upload COA", "error", err)
-		return coaResult{filename: fh.Filename, err: err}
-	}
-
-	result, usage, err := svc.AnalyzeCOA(ctx, uploaded.ID)
-	if err != nil {
-		logger.Error("failed to analyze COA", "error", err)
 		return coaResult{filename: fh.Filename, err: err}
 	}
 
@@ -38,32 +55,44 @@ func processCOA(ctx context.Context, logger *slog.Logger, svc *Service, store *S
 		"file", fh.Filename,
 		"input_tokens", usage.InputTokens,
 		"output_tokens", usage.OutputTokens,
-		"cost_usd", usage.CostUSD(),
+		"cost_usd", usage.CostUSD,
 	)
 
 	if err := store.StoreCOAAnalysis(ctx, result, usage); err != nil {
-		logger.Error("failed to store analysis", "error", err)
 		return coaResult{filename: fh.Filename, err: err}
-	}
-
-	if err := svc.DeleteCOA(ctx, uploaded.ID); err != nil {
-		logger.Error("Failed to delete COA", "error", err)
 	}
 
 	return coaResult{filename: fh.Filename}
 }
 
-func AnalyzeCOAHandler(logger *slog.Logger, svc *Service, store *Store) http.HandlerFunc {
+func AnalyzeCOAHandler(logger *slog.Logger, svc coaAnalyzer, store coaAnalysisStore) http.HandlerFunc {
 	sem := make(chan struct{}, 10)
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestSize)
+
 		err := r.ParseMultipartForm(32 << 20)
 		if err != nil {
+			if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+				http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
+				return
+			}
 			logger.Error("failed to parse form", "error", err)
 			http.Error(w, "failed to parse form", http.StatusBadRequest)
 			return
 		}
 
 		files := r.MultipartForm.File["coa"]
+
+		if len(files) == 0 {
+			http.Error(w, "at least one COA file is required", http.StatusBadRequest)
+			return
+		}
+
+		if len(files) > maxFiles {
+			http.Error(w, "too many files", http.StatusBadRequest)
+			return
+		}
+
 		var wg sync.WaitGroup
 		resCh := make(chan coaResult, len(files))
 

@@ -16,6 +16,11 @@ type Miss struct {
 	Got      string
 }
 
+func FieldCount(expected *coa.Analysis) int {
+	const scalarFields = 9
+	return scalarFields + len(expected.Cannabinoids) + len(expected.Terpenes) + len(expected.Summary)
+}
+
 // Function to compare LLM output against JSON golden data
 func Score(expected, actual *coa.Analysis) (correct int, total int, missed []Miss) {
 	if norm(expected.Laboratory.Name) == norm(actual.Laboratory.Name) {
