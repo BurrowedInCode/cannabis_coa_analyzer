@@ -214,6 +214,20 @@ cd server
 go test ./...
 ```
 
+### Store integration tests
+
+COA store tests use real PostgreSQL queries and transactions. Set
+`TEST_DATABASE_URL` to a disposable PostgreSQL database, then run from `server/`:
+
+```bash
+TEST_DATABASE_URL='postgres://admin:password@localhost:5432/cannabis_coa_analyzer_test?sslmode=disable' go test ./internal/coa -v
+```
+
+The database must already exist, and the user must have permission to create
+schemas. Each test applies the existing migrations in a unique schema and drops
+that schema afterward; existing tables are not modified. Without
+`TEST_DATABASE_URL`, these tests skip so the offline suite still runs normally.
+
 ## Deployment
 
 Ships as a single Docker image to Fly.io. Secrets (`JWT_SECRET`, `OPENROUTER_API_KEY`, `DATABASE_URL`) are managed with `fly secrets set` — never baked into the image. Set `LLM_MODEL` in the Fly environment to select the upstream model.
