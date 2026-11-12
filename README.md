@@ -216,17 +216,37 @@ go test ./...
 
 ### Store integration tests
 
-COA store tests use real PostgreSQL queries and transactions. Set
-`TEST_DATABASE_URL` to a disposable PostgreSQL database, then run from `server/`:
+COA store tests use real PostgreSQL queries and transactions. From the repository
+root, configure the local test connection once:
 
 ```bash
-TEST_DATABASE_URL='postgres://admin:password@localhost:5432/cannabis_coa_analyzer_test?sslmode=disable' go test ./internal/coa -v
+cp .env.test.example .env.test
 ```
 
-The database must already exist, and the user must have permission to create
-schemas. Each test applies the existing migrations in a unique schema and drops
-that schema afterward; existing tables are not modified. Without
-`TEST_DATABASE_URL`, these tests skip so the offline suite still runs normally.
+Then run:
+
+```bash
+make test-integration
+```
+
+This starts a dedicated PostgreSQL 16 container, waits for it to become healthy,
+loads the gitignored `.env.test`, and runs the suite with `-tags=integration` and
+test caching disabled. The test database uses localhost port **15432**, separate
+from the development database on 5432. Its data lives in memory and is disposable.
+The container stays running for debugging; stop and discard it with
+`make test-db-down`. Run unit tests alone with `make test` (no Docker required).
+
+Each store test applies migrations in a unique schema and drops it afterward.
+The integration build tag keeps these tests out of ordinary `go test ./...` runs;
+explicit integration runs fail if `TEST_DATABASE_URL` is missing.
+
+For another disposable database, set `TEST_DATABASE_URL` and run
+`bash scripts/test-integration.sh` directly; an explicit environment variable
+takes precedence over `.env.test`. The database must exist and its user must be
+allowed to create schemas. Never point integration tests at production.
+
+GitHub Actions runs unit and integration tests using a fresh PostgreSQL service
+container on each job, without relying on a local `.env.test` file or API keys.
 
 ## Deployment
 

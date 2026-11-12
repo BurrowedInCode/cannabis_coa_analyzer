@@ -1,0 +1,38 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: coa_test
+          POSTGRES_PASSWORD: coa_test_password
+          POSTGRES_DB: cannabis_coa_analyzer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U coa_test -d cannabis_coa_analyzer_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - name: Unit tests
+        run: make test
+      - name: Integration tests
+        env:
+          TEST_DATABASE_URL: postgres://coa_test:coa_test_password@localhost:5432/cannabis_coa_analyzer_test?sslmode=disable
+        run: bash scripts/test-integration.sh
