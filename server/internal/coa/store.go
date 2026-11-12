@@ -75,7 +75,7 @@ func (s *Store) StoreCOAAnalysis(ctx context.Context, a *Analysis, u Usage) erro
 }
 
 func (s *Store) GetAllCOAAnalyses(ctx context.Context, limit int, offset int) ([]*AnalysisSummary, error) {
-	rows, err := s.db.Query(ctx, "SELECT id, sample_name, seed_to_sale_number, test_date, overall_pass FROM analyses LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := s.db.Query(ctx, "SELECT id, sample_name, seed_to_sale_number, test_date, overall_pass FROM analyses ORDER BY test_date DESC, id DESC LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query analyses: %w", err)
 	}

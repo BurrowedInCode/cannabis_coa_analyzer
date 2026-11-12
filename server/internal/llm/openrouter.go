@@ -66,7 +66,7 @@ func (c *OpenRouterClient) Complete(ctx context.Context, request Request) (Respo
 				Role: components.ChatUserMessageRoleUser,
 				Content: components.CreateChatUserMessageContentArrayOfChatContentItems([]components.ChatContentItems{
 					components.CreateChatContentItemsText(components.ChatContentText{Text: request.Prompt}),
-					components.CreateChatContentItemsFile(components.ChatContentFile{File: components.File{
+					components.CreateChatContentItemsFile(components.ChatContentFile{File: components.ChatContentFileFile{
 						Filename: openrouter.Pointer(request.Document.Filename),
 						FileData: openrouter.Pointer(fileData),
 					}}),
