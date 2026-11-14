@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -186,7 +187,7 @@ func (s *Store) UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) e
 	}
 	defer tx.Rollback(ctx)
 
-	_, err = tx.Exec(ctx,
+	res, err := tx.Exec(ctx,
 		`UPDATE analyses
 		 SET sample_name=$1, seed_to_sale_number=$2, sample_matrix=$3, test_date=$4, overall_pass=$5
 		 WHERE id=$6`,
@@ -194,6 +195,10 @@ func (s *Store) UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) e
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update analysis: %w", err)
+	}
+
+	if res.RowsAffected() == 0 {
+		return fmt.Errorf("failed to update analysis: %w", pgx.ErrNoRows)
 	}
 
 	_, err = tx.Exec(ctx,
