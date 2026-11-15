@@ -17,6 +17,7 @@ type COAStore interface {
 	GetAllCOAAnalyses(ctx context.Context, limit int, offset int) ([]*AnalysisSummary, error)
 	GetCOAAnalysis(ctx context.Context, id string) (*Analysis, error)
 	UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) error
+	DeleteCOAAnalysis(ctx context.Context, id string) error
 }
 
 func NewStore(db *pgxpool.Pool) *Store {
@@ -30,14 +31,18 @@ func (s *Store) StoreCOAAnalysis(ctx context.Context, a *Analysis, u Usage) erro
 	}
 	defer tx.Rollback(ctx)
 
-	var labID string
-	err = tx.QueryRow(ctx, "INSERT INTO laboratories (name, address, phone, certification) VALUES ($1, $2, $3, $4) RETURNING id", a.Laboratory.Name, a.Laboratory.Address, a.Laboratory.Phone, a.Laboratory.Certification).Scan(&labID)
-	if err != nil {
-		return fmt.Errorf("failed to insert laboratory: %w", err)
-	}
-
 	var analysisID string
-	err = tx.QueryRow(ctx, "INSERT INTO analyses (sample_name, seed_to_sale_number, sample_matrix, test_date, overall_pass, laboratory_id, input_tokens, output_tokens) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass, labID, u.InputTokens, u.OutputTokens).Scan(&analysisID)
+	err = tx.QueryRow(ctx, `
+		INSERT INTO analyses (
+			sample_name, seed_to_sale_number, sample_matrix, test_date, overall_pass,
+			laboratory_name, laboratory_address, laboratory_phone, laboratory_certification,
+			input_tokens, output_tokens
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id`,
+		a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass,
+		a.Laboratory.Name, a.Laboratory.Address, a.Laboratory.Phone, a.Laboratory.Certification,
+		u.InputTokens, u.OutputTokens,
+	).Scan(&analysisID)
 	if err != nil {
 		return fmt.Errorf("failed to insert analysis: %w", err)
 	}
@@ -107,9 +112,9 @@ func (s *Store) GetCOAAnalysis(ctx context.Context, id string) (*Analysis, error
 
 	err := s.db.QueryRow(ctx, `
 		SELECT a.id, a.sample_name, a.seed_to_sale_number, a.sample_matrix, a.test_date,
-			a.overall_pass, l.name, l.address, l.phone, l.certification
+			a.overall_pass, a.laboratory_name, a.laboratory_address,
+			a.laboratory_phone, a.laboratory_certification
 		FROM analyses a
-		INNER JOIN laboratories l ON a.laboratory_id = l.id
 		WHERE a.id = $1`, id).Scan(
 		&analysisID,
 		&analysis.SampleName,
@@ -189,9 +194,9 @@ func (s *Store) UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) e
 
 	res, err := tx.Exec(ctx,
 		`UPDATE analyses
-		 SET sample_name=$1, seed_to_sale_number=$2, sample_matrix=$3, test_date=$4, overall_pass=$5
-		 WHERE id=$6`,
-		a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass, id,
+		 SET sample_name=$1, seed_to_sale_number=$2, sample_matrix=$3, test_date=$4, overall_pass=$5, laboratory_name=$6, laboratory_address=$7, laboratory_phone=$8, laboratory_certification=$9
+		 WHERE id=$10`,
+		a.SampleName, a.SeedToSaleNumber, a.SampleMatrix, a.TestDate, a.OverallPass, a.Laboratory.Name, a.Laboratory.Address, a.Laboratory.Phone, a.Laboratory.Certification, id,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update analysis: %w", err)
@@ -199,16 +204,6 @@ func (s *Store) UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) e
 
 	if res.RowsAffected() == 0 {
 		return fmt.Errorf("failed to update analysis: %w", pgx.ErrNoRows)
-	}
-
-	_, err = tx.Exec(ctx,
-		`UPDATE laboratories
-		 SET name=$1, address=$2, phone=$3, certification=$4
-		 WHERE id=(SELECT laboratory_id FROM analyses WHERE id=$5)`,
-		a.Laboratory.Name, a.Laboratory.Address, a.Laboratory.Phone, a.Laboratory.Certification, id,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to update laboratory: %w", err)
 	}
 
 	if _, err = tx.Exec(ctx, "DELETE FROM cannabinoids WHERE analysis_id=$1", id); err != nil {
@@ -251,4 +246,17 @@ func (s *Store) UpdateCOAAnalysis(ctx context.Context, id string, a *Analysis) e
 	}
 
 	return tx.Commit(ctx)
+}
+
+func (s *Store) DeleteCOAAnalysis(ctx context.Context, id string) error {
+	res, err := s.db.Exec(ctx, "DELETE FROM analyses WHERE id=$1", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete analysis: %w", err)
+	}
+
+	if res.RowsAffected() == 0 {
+		return fmt.Errorf("failed to delete analysis: %w", pgx.ErrNoRows)
+	}
+
+	return nil
 }

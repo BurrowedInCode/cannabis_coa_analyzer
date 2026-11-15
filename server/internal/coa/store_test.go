@@ -511,7 +511,7 @@ func TestUpdateCOAAnalysisNotFound(t *testing.T) {
 				t.Errorf("error = %v, want %v", err, pgx.ErrNoRows)
 			}
 
-			for _, table := range []string{"laboratories", "analyses", "cannabinoids", "terpenes", "test_summaries"} {
+			for _, table := range []string{"analyses", "cannabinoids", "terpenes", "test_summaries"} {
 				var count int
 				err := store.db.QueryRow(ctx,
 					"SELECT count(*) FROM "+pgx.Identifier{table}.Sanitize(),
@@ -582,7 +582,6 @@ func TestStoreCOAAnalysisRollsBackOnInsertError(t *testing.T) {
 	}
 
 	tables := []string{
-		"laboratories",
 		"analyses",
 		"cannabinoids",
 		"terpenes",
@@ -913,7 +912,7 @@ func TestGetAllCOAAnalysesDateTieBreak(t *testing.T) {
 	}
 }
 
-func TestGetAllCOAAnalysesDatabaseErrors(t *testing.T) {
+func TestGetAllCOAAnalysesDatabaseError(t *testing.T) {
 	ctx := context.Background()
 	store := newTestStore(t)
 
@@ -984,5 +983,282 @@ func TestGetCOAAnalysisDatabaseError(t *testing.T) {
 
 	if got != nil {
 		t.Errorf("analysis = %v, want nil", got)
+	}
+}
+
+func TestDeleteCOAAnalysisRemovesAnalysisAndChildren(t *testing.T) {
+	ctx := context.Background()
+	store := newTestStore(t)
+
+	want := &Analysis{
+		Laboratory: Laboratory{
+			Name:          "example lab",
+			Address:       "123 main st",
+			Phone:         "123-456-7890",
+			Certification: "cert-12345",
+		},
+		SampleName:       "sample name",
+		SeedToSaleNumber: "1234567890",
+		SampleMatrix:     "Flower",
+		TestDate:         time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC),
+		OverallPass:      true,
+		Cannabinoids: []Cannabinoid{
+			{Name: "THC", Value: 23, Unit: "%"},
+			{Name: "CBD", Value: 10, Unit: "%"},
+		},
+		Terpenes: []Terpene{
+			{Name: "Pinene", Value: 1.5, Unit: "%"},
+		},
+		Summary: []TestSummary{
+			{Name: "Pesticides", Status: "pass"},
+			{Name: "Heavy Metals", Status: "pass"},
+		},
+	}
+
+	usage := Usage{InputTokens: 120, OutputTokens: 45}
+
+	err := store.StoreCOAAnalysis(ctx, want, usage)
+	if err != nil {
+		t.Fatalf("storing first analysis: %v", err)
+	}
+
+	var id string
+	err = store.db.QueryRow(ctx,
+		"SELECT id FROM analyses WHERE seed_to_sale_number = $1", want.SeedToSaleNumber,
+	).Scan(&id)
+	if err != nil {
+		t.Fatalf("query original analysis ID: %v", err)
+	}
+
+	err = store.DeleteCOAAnalysis(ctx, id)
+	if err != nil {
+		t.Fatalf("delete coa: %v", err)
+	}
+
+	_, err = store.GetCOAAnalysis(ctx, id)
+	if !errors.Is(err, pgx.ErrNoRows) {
+		t.Fatalf("get deleted analysis: error = %v want %v", err, pgx.ErrNoRows)
+	}
+
+	var count int
+	err = store.db.QueryRow(ctx, "SELECT count(*) FROM cannabinoids WHERE analysis_id=$1", id).Scan(&count)
+	if err != nil {
+		t.Fatalf("count cannabinoids after delete: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("%d cannabinoids counted want 0", count)
+	}
+	err = store.db.QueryRow(ctx, "SELECT count(*) FROM terpenes WHERE analysis_id=$1", id).Scan(&count)
+	if err != nil {
+		t.Fatalf("count terpenes after delete: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("%d terpenes counted want 0", count)
+	}
+
+	err = store.db.QueryRow(ctx, "SELECT count(*) FROM test_summaries WHERE analysis_id=$1", id).Scan(&count)
+	if err != nil {
+		t.Fatalf("count test summaries after delete: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("%d test summaries counted want 0", count)
+	}
+}
+
+func TestDeleteCOAAnalysisPreservesUnrelatedAnalysis(t *testing.T) {
+	store := newTestStore(t)
+	ctx := context.Background()
+
+	analysisA := &Analysis{
+		Laboratory: Laboratory{
+			Name:          "Lab A",
+			Address:       "123 Main St",
+			Phone:         "555-0100",
+			Certification: "CERT-A",
+		},
+		SampleName:       "Sample A",
+		SeedToSaleNumber: "SALE-A",
+		SampleMatrix:     "Flower",
+		TestDate:         time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC),
+		OverallPass:      true,
+		Cannabinoids: []Cannabinoid{
+			{Name: "THC", Value: 23, Unit: "%"},
+		},
+		Terpenes: []Terpene{
+			{Name: "Pinene", Value: 1.5, Unit: "%"},
+		},
+		Summary: []TestSummary{
+			{Name: "Pesticides", Status: "pass"},
+		},
+	}
+
+	analysisB := &Analysis{
+		Laboratory: Laboratory{
+			Name:          "Lab B",
+			Address:       "456 Oak St",
+			Phone:         "555-0200",
+			Certification: "CERT-B",
+		},
+		SampleName:       "Sample B",
+		SeedToSaleNumber: "SALE-B",
+		SampleMatrix:     "Concentrate",
+		TestDate:         time.Date(2026, time.January, 2, 12, 0, 0, 0, time.UTC),
+		OverallPass:      false,
+		Cannabinoids: []Cannabinoid{
+			{Name: "CBD", Value: 10, Unit: "mg/g"},
+		},
+		Terpenes: []Terpene{
+			{Name: "Limonene", Value: 0.5, Unit: "%"},
+		},
+		Summary: []TestSummary{
+			{Name: "Heavy Metals", Status: "fail"},
+		},
+	}
+
+	usage := Usage{InputTokens: 120, OutputTokens: 45}
+	if err := store.StoreCOAAnalysis(ctx, analysisA, usage); err != nil {
+		t.Fatalf("store analysis A: %v", err)
+	}
+	if err := store.StoreCOAAnalysis(ctx, analysisB, usage); err != nil {
+		t.Fatalf("store analysis B: %v", err)
+	}
+	var idA, idB string
+	err := store.db.QueryRow(ctx,
+		"SELECT id FROM analyses WHERE seed_to_sale_number = $1", analysisA.SeedToSaleNumber,
+	).Scan(&idA)
+	if err != nil {
+		t.Fatalf("query original analysis ID: %v", err)
+	}
+
+	err = store.db.QueryRow(ctx,
+		"SELECT id FROM analyses WHERE seed_to_sale_number = $1", analysisB.SeedToSaleNumber,
+	).Scan(&idB)
+	if err != nil {
+		t.Fatalf("query original analysis ID: %v", err)
+	}
+
+	err = store.DeleteCOAAnalysis(ctx, idA)
+	if err != nil {
+		t.Fatalf("deleting coa: %v", err)
+	}
+
+	got, err := store.GetCOAAnalysis(ctx, idB)
+	if err != nil {
+		t.Fatalf("get analysis B after deleting A: %v", err)
+	}
+	if got == nil {
+		t.Fatal("analysis B after deleting A = nil, want the original analysis")
+	}
+
+	if got.SampleName != analysisB.SampleName {
+		t.Errorf("B sample name = %q, want %q", got.SampleName, analysisB.SampleName)
+	}
+	if got.SeedToSaleNumber != analysisB.SeedToSaleNumber {
+		t.Errorf("B seed to sale number = %q, want %q", got.SeedToSaleNumber, analysisB.SeedToSaleNumber)
+	}
+	if got.SampleMatrix != analysisB.SampleMatrix {
+		t.Errorf("B sample matrix = %q, want %q", got.SampleMatrix, analysisB.SampleMatrix)
+	}
+	if !got.TestDate.Equal(analysisB.TestDate) {
+		t.Errorf("B test date = %v, want %v", got.TestDate, analysisB.TestDate)
+	}
+	if got.OverallPass != analysisB.OverallPass {
+		t.Errorf("B overall pass = %t, want %t", got.OverallPass, analysisB.OverallPass)
+	}
+	if got.Laboratory != analysisB.Laboratory {
+		t.Errorf("B laboratory = %+v, want %+v", got.Laboratory, analysisB.Laboratory)
+	}
+
+	byCannabinoidName := func(a, b Cannabinoid) int {
+		return cmp.Compare(a.Name, b.Name)
+	}
+	slices.SortFunc(got.Cannabinoids, byCannabinoidName)
+	slices.SortFunc(analysisB.Cannabinoids, byCannabinoidName)
+	if !slices.Equal(got.Cannabinoids, analysisB.Cannabinoids) {
+		t.Errorf("B cannabinoids = %+v, want %+v", got.Cannabinoids, analysisB.Cannabinoids)
+	}
+
+	byTerpeneName := func(a, b Terpene) int {
+		return cmp.Compare(a.Name, b.Name)
+	}
+	slices.SortFunc(got.Terpenes, byTerpeneName)
+	slices.SortFunc(analysisB.Terpenes, byTerpeneName)
+	if !slices.Equal(got.Terpenes, analysisB.Terpenes) {
+		t.Errorf("B terpenes = %+v, want %+v", got.Terpenes, analysisB.Terpenes)
+	}
+
+	bySummaryName := func(a, b TestSummary) int {
+		return cmp.Compare(a.Name, b.Name)
+	}
+	slices.SortFunc(got.Summary, bySummaryName)
+	slices.SortFunc(analysisB.Summary, bySummaryName)
+	if !slices.Equal(got.Summary, analysisB.Summary) {
+		t.Errorf("B summaries = %+v, want %+v", got.Summary, analysisB.Summary)
+	}
+}
+
+func TestDeleteCOAAnalysisNotFound(t *testing.T) {
+	ctx := context.Background()
+	store := newTestStore(t)
+
+	analysis := &Analysis{
+		Laboratory: Laboratory{
+			Name:          "Example Lab",
+			Address:       "123 Main St",
+			Phone:         "555-0100",
+			Certification: "CERT-001",
+		},
+		SampleName:       "Existing sample",
+		SeedToSaleNumber: "SALE-EXISTING",
+		SampleMatrix:     "Flower",
+		TestDate:         time.Date(2026, time.January, 1, 12, 0, 0, 0, time.UTC),
+		OverallPass:      true,
+		Cannabinoids: []Cannabinoid{
+			{Name: "THC", Value: 23, Unit: "%"},
+		},
+		Terpenes: []Terpene{
+			{Name: "Pinene", Value: 1.5, Unit: "%"},
+		},
+		Summary: []TestSummary{
+			{Name: "Pesticides", Status: "pass"},
+		},
+	}
+
+	usage := Usage{InputTokens: 120, OutputTokens: 45}
+	err := store.StoreCOAAnalysis(ctx, analysis, usage)
+	if err != nil {
+		t.Fatalf("store existing analysis: %v", err)
+	}
+
+	err = store.DeleteCOAAnalysis(ctx, uuid.NewString())
+	if !errors.Is(err, pgx.ErrNoRows) {
+		t.Errorf("delete analysis: error = %v want %v", err, pgx.ErrNoRows)
+	}
+}
+
+func TestDeleteCOAAnalysisRejectsInvalidUUID(t *testing.T) {
+	ctx := context.Background()
+	store := newTestStore(t)
+
+	tests := []struct {
+		name string
+		id   string
+	}{
+		{name: "empty ID", id: ""},
+		{name: "malformed UUID", id: "not-a-uuid"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := store.DeleteCOAAnalysis(ctx, tt.id)
+
+			var pgErr *pgconn.PgError
+			if !errors.As(err, &pgErr) {
+				t.Fatalf("delete analysis: error = %v, want a PostgreSQL error", err)
+			}
+			if pgErr.Code != "22P02" {
+				t.Errorf("delete analysis: PostgreSQL error code = %s, want 22P02", pgErr.Code)
+			}
+		})
 	}
 }
